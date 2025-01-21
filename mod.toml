@@ -5,13 +5,13 @@
 
 # Unique ID of this mod. Pick something long enough that it'll never be the same as any other mod.
 # The name displayed in the mod management menu is separate from this so this doesn't need to be human readable.
-id = "mm_recomp_mod_template"
+id = "map_overhaul"
 
 # Version of this mod.
 version = "1.0.0"
 
 # Authors of this mod.
-authors = [ "Your name here" ]
+authors = [ "danielryb" ]
 
 # ID of the target recomp game.
 game_id = "mm"
@@ -38,7 +38,7 @@ native_libraries = [
 elf_path = "build/mod.elf"
 
 # Output mod filename.
-mod_filename = "mm_recomp_mod_template"
+mod_filename = "map_overhaul"
 
 # Reference symbol files.
 func_reference_syms_file = "Zelda64RecompSyms/mm.us.rev1.syms.toml"
