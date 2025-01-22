@@ -25,6 +25,8 @@
 #define OWL_WARP_IKANA_CANYON_X     IKANA_CANYON_X
 #define OWL_WARP_STONE_TOWER_X      STONE_TOWER_X
 
+#define MAP_CENTER_PX_X 153
+
 // y positions
 #define GREAT_BAY_Y         113
 #define ZORA_HALL_Y         144
@@ -49,28 +51,29 @@
 #define OWL_WARP_IKANA_CANYON_Y     IKANA_CANYON_Y
 #define OWL_WARP_STONE_TOWER_Y      STONE_TOWER_Y
 
+#define MAP_CENTER_PX_Y 113
+
 // float positions' constants
-#define SCALE_X (207.0f / 263.0f)
-#define SCALE_Y -SCALE_X
+#define PIXEL_TO_FLOAT_SCALE_X 1
+#define PIXEL_TO_FLOAT_SCALE_Y -PIXEL_TO_FLOAT_SCALE_X
 
-#define OFFSET_X 4.0f
-#define OFFSET_Y -OFFSET_X
-
-#define FLOAT_TO_DOT_X 1.275f
-#define FLOAT_TO_DOT_Y FLOAT_TO_DOT_X
+#define MAP_TO_SCREEN_X (104.0f / 132.0f)
+#define MAP_TO_SCREEN_Y MAP_TO_SCREEN_X
 
 // game objects
-#define FACE_WIDTH 16
-#define FACE_HEIGHT FACE_WIDTH
+#define FACE_OFFSET_X -1
+#define FACE_OFFSET_Y -1
 
-#define DOT_WIDTH 8
-#define DOT_HEIGHT DOT_WIDTH
+#define DOT_RADIUS 4
+#define DOT_OFFSET_X -DOT_RADIUS
+#define DOT_OFFSET_Y DOT_RADIUS
 
-#define CURSOR_CIRCLE_WIDTH 8
-#define CURSOR_CIRCLE_HEIGHT CURSOR_CIRCLE_WIDTH
-#define CURSOR_RADIUS 6
+#define CURSOR_OFFSET_X 2.77f
+#define CURSOR_OFFSET_Y -CURSOR_OFFSET_X
 
 #define OWL_WIDTH 24
 #define OWL_HEIGHT 12
+#define OWL_OFFSET_X -OWL_WIDTH / 2
+#define OWL_OFFSET_Y OWL_HEIGHT / 2 + 1.5f
 
 #endif /* __CONSTANTS_H__ */
