@@ -281,11 +281,9 @@ void update_map(void) {
     UPDATE_ARRAY((&sVtxPageMapWorldQuadsY[sVtxPageMapWorldQuadsOffset]), new_sVtxPageMapWorldQuadsY, VTX_PAGE_MAP_WORLD_QUADS - sVtxPageMapWorldQuadsOffset);
 }
 
-#include "interface/parameter_static/parameter_static.h"
-#include "interface/icon_item_field_static/icon_item_field_static.h"
-#include "interface/icon_item_dungeon_static/icon_item_dungeon_static.h"
-#include "interface/icon_item_jpn_static/icon_item_jpn_static.h"
-#include "archives/icon_item_24_static/icon_item_24_static_yar.h"
+#include "PR/gbi.h"
+#include "assets/interface/icon_item_field_static/icon_item_field_static.h"
+#include "assets/archives/icon_item_24_static/icon_item_24_static_yar.h"
 
 extern TexturePtr sCloudTextures[];
 extern s16 sWorldMapDotPrimColors[][3];
@@ -314,7 +312,7 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
     // Draw the world map image
     if ((pauseCtx->pageIndex == PAUSE_MAP) && (pauseCtx->state == PAUSE_STATE_MAIN) &&
         ((pauseCtx->mainState == PAUSE_MAIN_STATE_IDLE) || (pauseCtx->mainState == PAUSE_MAIN_STATE_EQUIP_ITEM)) &&
-        YREG(6) && (pauseCtx->state != PAUSE_STATE_SAVEPROMPT) && !IS_PAUSE_STATE_GAMEOVER) {
+        YREG(6) && (pauseCtx->state != PAUSE_STATE_SAVEPROMPT) && !IS_PAUSE_STATE_GAMEOVER(pauseCtx)) {
 
         // Draw the world map image flat
         // Because it is flat, the texture is loaded by filling it in 8 rows at a time.
@@ -426,17 +424,17 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
         }
     }
 
-    if (IS_PAUSE_STATE_OWLWARP) {
+    if (IS_PAUSE_STATE_OWL_WARP(pauseCtx)) {
         gDPPipeSync(POLY_OPA_DISP++);
         gDPSetRenderMode(POLY_OPA_DISP++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
         gDPSetCombineMode(POLY_OPA_DISP++, G_CC_PRIMITIVE, G_CC_PRIMITIVE);
-        gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 0, 0, 0, R_PAUSE_OWLWARP_ALPHA);
+        gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 0, 0, 0, R_PAUSE_OWL_WARP_ALPHA);
         gDPFillRectangle(POLY_OPA_DISP++, 50, 62, 270, 190);
     }
 
     Gfx_SetupDL42_Opa(play->state.gfxCtx);
 
-    if (!IS_PAUSE_STATE_OWLWARP) {
+    if (!IS_PAUSE_STATE_OWL_WARP(pauseCtx)) {
         // Browsing the world map regions on the pause menu
         gDPLoadTextureBlock(POLY_OPA_DISP++, gWorldMapDotTex, G_IM_FMT_IA, G_IM_SIZ_8b, 8, 8, 0,
                             G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD,
@@ -511,7 +509,7 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
     // and always return true
     if ((pauseCtx->pageIndex == PAUSE_MAP) && (pauseCtx->mainState == PAUSE_MAIN_STATE_IDLE) &&
         (pauseCtx->state == PAUSE_STATE_MAIN) && (pauseCtx->state != PAUSE_STATE_SAVEPROMPT) &&
-        !IS_PAUSE_STATE_GAMEOVER) {
+        !IS_PAUSE_STATE_GAMEOVER(pauseCtx)) {
         j = 0;
         n = 0;
 
@@ -532,7 +530,7 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
         // Find the region that player is currently in
         // Loop over region (n) and regionIndex (j)
         while (true) {
-            if ((gSceneIdsPerRegion[n][j] == 0xFFFF)) {
+            if (gSceneIdsPerRegion[n][j] == 0xFFFF) {
                 n++;
                 j = 0;
                 if (n == REGION_MAX) {
