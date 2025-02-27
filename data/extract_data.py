@@ -258,6 +258,7 @@ def generate_warp_positions(from_center_x, from_center_y, offset_x, offset_y, sc
     return ''.join(build)
 
 def generate_minimap_to_worldmap_maps(from_center_x, from_center_y, offset_x, offset_y, scale_x, scale_y) -> str:
+    tab_size = 4
     element_type        = "minimap_map_t"
     arr_name            = "MiniToWorld"
     subarr_prefix       = arr_name + "_"
@@ -330,11 +331,24 @@ def generate_minimap_to_worldmap_maps(from_center_x, from_center_y, offset_x, of
     return ''.join(build)
 
 if __name__ == "__main__":
-    tab_size = 4
-
     # map to:
-    A = (44, 54) # top-left corner
-    B = (260, 182) # bottom-right corner
+    # A = (44, 54) # top-left corner
+    # B = (260, 182) # bottom-right corner
+    SCREEN_RESOLUTION   = (320, 240)
+    MAP_RESOLUTION      = (216, 128)
+    OFFSET              = (0, 5)
+
+    # top-left corner
+    A = ( \
+            (SCREEN_RESOLUTION[0] / 2) - (MAP_RESOLUTION[0] / 2) + OFFSET[0], \
+            (SCREEN_RESOLUTION[1] / 2) - (MAP_RESOLUTION[1] / 2) + OFFSET[1], \
+        )
+
+    # bottom-right corner
+    B = ( \
+            (SCREEN_RESOLUTION[0] / 2) + (MAP_RESOLUTION[0] / 2) + OFFSET[0], \
+            (SCREEN_RESOLUTION[1] / 2) + (MAP_RESOLUTION[1] / 2) + OFFSET[1], \
+        )
 
     # map from:
     a = (-2.5, 1.48148) # top-left corner
@@ -350,10 +364,12 @@ if __name__ == "__main__":
     with open("data/generated/map_data.c", "w+") as f:
         f.write("// center\n\n")
         f.write(generate_position("MapCenterPx", 0, 0, a[0], a[1], offset_x, offset_y, scale_x, scale_y))
+
         f.write("\n// cursor\n\n")
         f.write(generate_cursor_positions(a[0], a[1], offset_x, offset_y, scale_x, scale_y))
+
         f.write("\n// warps\n\n")
         f.write(generate_warp_positions(a[0], a[1], offset_x, offset_y, scale_x, scale_y))
+
         f.write("\n// minimaps\n\n")
         f.write(generate_minimap_to_worldmap_maps(a[0], a[1], offset_x, offset_y, scale_x, scale_y))
-        # f.write("\n\n")

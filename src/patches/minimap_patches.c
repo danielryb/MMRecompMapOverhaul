@@ -1,16 +1,15 @@
 #include "map_overhaul.h"
-
-RECOMP_HOOK("Map_InitRoomData") void on_Map_InitRoomData(PlayState* play, void* segmentAddress) {
-    map_overhaul_reload_minimap_data();
-}
-
-RECOMP_HOOK("Map_Init") void on_Map_Init(PlayState* play, void* segmentAddress) {
-    map_overhaul_reload_minimap_data();
-}
-
 #include "assets/interface/parameter_static/parameter_static.h"
 #include "assets/objects/gameplay_keep/gameplay_keep.h"
 #include "code/gDPLoadTextureBlock_Runtime.inc.c"
+
+RECOMP_HOOK("Map_InitRoomData") void on_Map_InitRoomData(PlayState* play, s16 room) {
+    map_overhaul_reload_minimap_data(room);
+}
+
+RECOMP_HOOK("Map_Init") void on_Map_Init(PlayState* play) {
+    map_overhaul_reload_minimap_data(play->roomCtx.curRoom.num);
+}
 
 extern MapDisp sMapDisp;
 
@@ -28,11 +27,27 @@ f32 MapDisp_GetStoreyY(f32 checkY);
 
 // #include "code/z_map_disp.c"
 
+Vtx gMapEntityVtx[] = {
+    VTX(-4,  4, 0, 0 << 6, 0 << 6, 128, 128, 128, 255),
+    VTX( 4,  4, 0, 8 << 6, 0 << 6, 128, 128, 128, 255),
+    VTX( 4, -4, 0, 8 << 6, 8 << 6, 128, 128, 128, 255),
+    VTX(-4, -4, 0, 0 << 6, 8 << 6, 128, 128, 128, 255),
+};
+
+Gfx gMapEntityDL[] = {
+    gsSPTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON),
+    gsSPClearGeometryMode(G_CULL_BACK),
+    gsDPSetTextureFilter(G_TF_POINT),
+
+    gsSPVertex(gMapEntityVtx, 4, 0),
+    gsSP1Quadrangle(0, 1, 2, 3, 0),
+    gsSPEndDisplayList(),
+};
+
 RECOMP_PATCH void MapDisp_Minimap_DrawActorIcon(PlayState* play, Actor* actor) {
     MapDataRoom* mapDataRoom;
-    // @mod Change position calculations to float for extra precision.
-    f32 posX;
-    f32 posY;
+    f32 posX;   // @mod Change position calculations to float for extra precision.
+    f32 posY;   //
     s32 texOffsetX;
     s32 texOffsetY;
     s32 texWidth;
@@ -130,19 +145,31 @@ RECOMP_PATCH void MapDisp_Minimap_DrawActorIcon(PlayState* play, Actor* actor) {
                                         G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK,
                                         G_TX_NOLOD, G_TX_NOLOD);
 
-            // @mod Use position casted to integer.
-            gSPTextureRectangle(OVERLAY_DISP++, (_posX - 4) << 2, (_posY - 4) << 2, (_posX + 4) << 2, (_posY + 4) << 2,
-                                G_TX_RENDERTILE, 0, 0, 1 << 10, 1 << 10);
+            // @mod Draw texture using transformation matrix and a quad for extra precision.
+            gSPMatrix(OVERLAY_DISP++, &gIdentityMtx, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+            Matrix_Translate(posX - 160.0f, 120.0f - posY, 0.0f, MTXMODE_NEW);
+            MATRIX_FINALIZE_AND_LOAD(OVERLAY_DISP++, play->state.gfxCtx);
+
+            gSPDisplayList(OVERLAY_DISP++, gMapEntityDL);
         } else {
             Gfx_SetupDL39_Overlay(play->state.gfxCtx);
             gDPSetCombineMode(OVERLAY_DISP++, G_CC_MODULATEIA_PRIM, G_CC_MODULATEIA_PRIM);
             if (actor->flags & ACTOR_FLAG_MINIMAP_ICON_ENABLED) {
+                gDPSetCombineLERP(OVERLAY_DISP++, PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0,
+                                PRIMITIVE, ENVIRONMENT, TEXEL0, ENVIRONMENT, TEXEL0, 0, PRIMITIVE, 0);
+                gDPSetEnvColor(OVERLAY_DISP++, 0, 0, 0, play->interfaceCtx.minimapAlpha);
+                gDPSetRenderMode(OVERLAY_DISP++, G_RM_AA_DEC_LINE, G_RM_NOOP2);
                 gDPSetPrimColor(OVERLAY_DISP++, 0, 0, sMinimapActorCategoryColors[actor->category].r,
                                 sMinimapActorCategoryColors[actor->category].g,
                                 sMinimapActorCategoryColors[actor->category].b, play->interfaceCtx.minimapAlpha);
-                // @mod Use position casted to integer.
-                gSPTextureRectangle(OVERLAY_DISP++, (_posX - 1) << 2, (_posY - 1) << 2, (_posX + 1) << 2, (_posY + 1) << 2,
-                                    G_TX_RENDERTILE, 0, 0, 0x0001, 0x0001);
+
+                // @mod Draw texture using transformation matrix and a quad for extra precision.
+                gSPMatrix(OVERLAY_DISP++, &gIdentityMtx, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+                Matrix_Translate(posX - 160.0f, 120.0f - posY, 0.0f, MTXMODE_NEW);
+                Matrix_Scale(0.25f, 0.25f, 0.25f, MTXMODE_APPLY);
+                MATRIX_FINALIZE_AND_LOAD(OVERLAY_DISP++, play->state.gfxCtx);
+
+                gSPDisplayList(OVERLAY_DISP++, gMapEntityDL);
             }
         }
         CLOSE_DISPS(play->state.gfxCtx);

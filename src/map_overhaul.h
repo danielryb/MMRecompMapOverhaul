@@ -20,11 +20,19 @@ extern s16 sVtxPageMapWorldQuadsY[VTX_PAGE_MAP_WORLD_QUADS];
 
 #include "constants.h"
 
+extern f32 new_sVtxPageMapWorldQuadsX[];
+extern f32 new_sVtxPageMapWorldQuadsY[];
+
 extern Vec2f map_overhaul_playerMinimapUnitPos;
 
-void map_overhaul_reload_minimap_data(void);
+void map_overhaul_reload_minimap_data(s8 room);
 
-void map_overhaul_update_map(void);
+void map_overhaul_get_face_position(size_t i, Vec2f* pos);
+void map_overhul_update_cursor_position(PlayState *play);
+
 bool map_overhaul_minimap_unit_to_world_map_position(Vec2f* minimapPos, Vec2f* dest);
+
+RECOMP_IMPORT("*", s32 recomp_get_analog_cam_enabled());
+RECOMP_IMPORT("*", void recomp_get_camera_inputs(float* x, float* y));
 
 #endif /* __MAP_OVERHAUL__ */

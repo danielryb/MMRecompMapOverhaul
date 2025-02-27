@@ -1,4 +1,5 @@
 #include "map_overhaul.h"
+#include "lib/math.h"
 
 RECOMP_IMPORT("*", void recomp_printf(char *msg, ...));
 
@@ -16,143 +17,91 @@ typedef struct {
     } while (false)
 
 // Face
-#define FACE_POS(NAME, AXIS) (NAME ## _ ## AXIS + FACE_OFFSET_ ## AXIS)
+#define FACE_POS(NAME, AXIS) (NAME ## _ ## AXIS)// + FACE_OFFSET_ ## AXIS)
 
-s16 new_sWorldMapCursorsRectLeft[REGION_MAX] = {
-    FACE_POS(GREAT_BAY, X),        // GREAT BAY
-    FACE_POS(ZORA_HALL, X),        // ZORA HALL
-    FACE_POS(ROMANI_RANCH, X),     // ROMANI RANCH
-    FACE_POS(DEKU_PALACE, X),      // DEKU PALACE
-    FACE_POS(WOODFALL, X),         // WOODFALL
-    FACE_POS(CLOCK_TOWN, X),       // CLOCK TOWN
-    FACE_POS(SNOWHEAD, X),         // SNOWHEAD
-    FACE_POS(IKANA_GRAVEYARD, X),  // IKANA GRAVEYARD
-    FACE_POS(IKANA_CANYON, X),     // IKANA CANYON
-    FACE_POS(GORON_VILLAGE, X),    // GORON VILLAGE
-    FACE_POS(STONE_TOWER, X),      // STONE TOWER
-};
+#define FACE_POS_GREAT_BAY_X        FACE_POS(GREAT_BAY, X)        // GREAT BAY
+#define FACE_POS_ZORA_HALL_X        FACE_POS(ZORA_HALL, X)        // ZORA HALL
+#define FACE_POS_ROMANI_RANCH_X     FACE_POS(ROMANI_RANCH, X)     // ROMANI RANCH
+#define FACE_POS_DEKU_PALACE_X      FACE_POS(DEKU_PALACE, X)      // DEKU PALACE
+#define FACE_POS_WOODFALL_X         FACE_POS(WOODFALL, X)         // WOODFALL
+#define FACE_POS_CLOCK_TOWN_X       FACE_POS(CLOCK_TOWN, X)       // CLOCK TOWN
+#define FACE_POS_SNOWHEAD_X         FACE_POS(SNOWHEAD, X)         // SNOWHEAD
+#define FACE_POS_IKANA_GRAVEYARD_X  FACE_POS(IKANA_GRAVEYARD, X)  // IKANA GRAVEYARD
+#define FACE_POS_IKANA_CANYON_X     FACE_POS(IKANA_CANYON, X)     // IKANA CANYON
+#define FACE_POS_GORON_VILLAGE_X    FACE_POS(GORON_VILLAGE, X)    // GORON VILLAGE
+#define FACE_POS_STONE_TOWER_X      FACE_POS(STONE_TOWER, X)      // STONE TOWER
 
-s16 new_sWorldMapCursorsRectTop[REGION_MAX] = {
-    FACE_POS(GREAT_BAY, Y),        // GREAT BAY
-    FACE_POS(ZORA_HALL, Y),        // ZORA HALL
-    FACE_POS(ROMANI_RANCH, Y),     // ROMANI RANCH
-    FACE_POS(DEKU_PALACE, Y),      // DEKU PALACE
-    FACE_POS(WOODFALL, Y),         // WOODFALL
-    FACE_POS(CLOCK_TOWN, Y),       // CLOCK TOWN
-    FACE_POS(SNOWHEAD, Y),         // SNOWHEAD
-    FACE_POS(IKANA_GRAVEYARD, Y),  // IKANA GRAVEYARD
-    FACE_POS(IKANA_CANYON, Y),     // IKANA CANYON
-    FACE_POS(GORON_VILLAGE, Y),    // GORON VILLAGE
-    FACE_POS(STONE_TOWER, Y),      // STONE TOWER
-};
-
-// Float
-#define PIXEL_TO_FLOAT(NAME, AXIS) ((NAME ## _ ## AXIS - MAP_CENTER_PX_ ## AXIS + PIXEL_TO_FLOAT_PX_OFFSET_ ## AXIS) * PIXEL_TO_FLOAT_SCALE_ ## AXIS)
-
-#define GREAT_BAY_X_F       PIXEL_TO_FLOAT(GREAT_BAY, X)
-#define ZORA_HALL_X_F       PIXEL_TO_FLOAT(ZORA_HALL, X)
-#define ROMANI_RANCH_X_F    PIXEL_TO_FLOAT(ROMANI_RANCH, X)
-#define DEKU_PALACE_X_F     PIXEL_TO_FLOAT(DEKU_PALACE, X)
-#define WOODFALL_X_F        PIXEL_TO_FLOAT(WOODFALL, X)
-#define CLOCK_TOWN_X_F      PIXEL_TO_FLOAT(CLOCK_TOWN, X)
-#define SNOWHEAD_X_F        PIXEL_TO_FLOAT(SNOWHEAD, X)
-#define IKANA_GRAVEYARD_X_F PIXEL_TO_FLOAT(IKANA_GRAVEYARD, X)
-#define IKANA_CANYON_X_F    PIXEL_TO_FLOAT(IKANA_CANYON, X)
-#define GORON_VILLAGE_X_F   PIXEL_TO_FLOAT(GORON_VILLAGE, X)
-#define STONE_TOWER_X_F     PIXEL_TO_FLOAT(STONE_TOWER, X)
-
-#define GREAT_BAY_Y_F       PIXEL_TO_FLOAT(GREAT_BAY, Y)
-#define ZORA_HALL_Y_F       PIXEL_TO_FLOAT(ZORA_HALL, Y)
-#define ROMANI_RANCH_Y_F    PIXEL_TO_FLOAT(ROMANI_RANCH, Y)
-#define DEKU_PALACE_Y_F     PIXEL_TO_FLOAT(DEKU_PALACE, Y)
-#define WOODFALL_Y_F        PIXEL_TO_FLOAT(WOODFALL, Y)
-#define CLOCK_TOWN_Y_F      PIXEL_TO_FLOAT(CLOCK_TOWN, Y)
-#define SNOWHEAD_Y_F        PIXEL_TO_FLOAT(SNOWHEAD, Y)
-#define IKANA_GRAVEYARD_Y_F PIXEL_TO_FLOAT(IKANA_GRAVEYARD, Y)
-#define IKANA_CANYON_Y_F    PIXEL_TO_FLOAT(IKANA_CANYON, Y)
-#define GORON_VILLAGE_Y_F   PIXEL_TO_FLOAT(GORON_VILLAGE, Y)
-#define STONE_TOWER_Y_F     PIXEL_TO_FLOAT(STONE_TOWER, Y)
-
-#define OWL_WARP_GREAT_BAY_COAST_X_F    PIXEL_TO_FLOAT(OWL_WARP_GREAT_BAY_COAST, X)
-#define OWL_WARP_ZORA_CAPE_X_F          PIXEL_TO_FLOAT(OWL_WARP_ZORA_CAPE, X)
-#define OWL_WARP_SNOWHEAD_X_F           PIXEL_TO_FLOAT(OWL_WARP_SNOWHEAD, X)
-#define OWL_WARP_MOUNTAIN_VILLAGE_X_F   PIXEL_TO_FLOAT(OWL_WARP_MOUNTAIN_VILLAGE, X)
-#define OWL_WARP_CLOCK_TOWN_X_F         PIXEL_TO_FLOAT(OWL_WARP_CLOCK_TOWN, X)
-#define OWL_WARP_MILK_ROAD_X_F          PIXEL_TO_FLOAT(OWL_WARP_MILK_ROAD, X)
-#define OWL_WARP_WOODFALL_X_F           PIXEL_TO_FLOAT(OWL_WARP_WOODFALL, X)
-#define OWL_WARP_SOUTHERN_SWAMP_X_F     PIXEL_TO_FLOAT(OWL_WARP_SOUTHERN_SWAMP, X)
-#define OWL_WARP_IKANA_CANYON_X_F       PIXEL_TO_FLOAT(OWL_WARP_IKANA_CANYON, X)
-#define OWL_WARP_STONE_TOWER_X_F        PIXEL_TO_FLOAT(OWL_WARP_STONE_TOWER, X)
-
-#define OWL_WARP_GREAT_BAY_COAST_Y_F    PIXEL_TO_FLOAT(OWL_WARP_GREAT_BAY_COAST, Y)
-#define OWL_WARP_ZORA_CAPE_Y_F          PIXEL_TO_FLOAT(OWL_WARP_ZORA_CAPE, Y)
-#define OWL_WARP_SNOWHEAD_Y_F           PIXEL_TO_FLOAT(OWL_WARP_SNOWHEAD, Y)
-#define OWL_WARP_MOUNTAIN_VILLAGE_Y_F   PIXEL_TO_FLOAT(OWL_WARP_MOUNTAIN_VILLAGE, Y)
-#define OWL_WARP_CLOCK_TOWN_Y_F         PIXEL_TO_FLOAT(OWL_WARP_CLOCK_TOWN, Y)
-#define OWL_WARP_MILK_ROAD_Y_F          PIXEL_TO_FLOAT(OWL_WARP_MILK_ROAD, Y)
-#define OWL_WARP_WOODFALL_Y_F           PIXEL_TO_FLOAT(OWL_WARP_WOODFALL, Y)
-#define OWL_WARP_SOUTHERN_SWAMP_Y_F     PIXEL_TO_FLOAT(OWL_WARP_SOUTHERN_SWAMP, Y)
-#define OWL_WARP_IKANA_CANYON_Y_F       PIXEL_TO_FLOAT(OWL_WARP_IKANA_CANYON, Y)
-#define OWL_WARP_STONE_TOWER_Y_F        PIXEL_TO_FLOAT(OWL_WARP_STONE_TOWER, Y)
+#define FACE_POS_GREAT_BAY_Y        FACE_POS(GREAT_BAY, Y)        // GREAT BAY
+#define FACE_POS_ZORA_HALL_Y        FACE_POS(ZORA_HALL, Y)        // ZORA HALL
+#define FACE_POS_ROMANI_RANCH_Y     FACE_POS(ROMANI_RANCH, Y)     // ROMANI RANCH
+#define FACE_POS_DEKU_PALACE_Y      FACE_POS(DEKU_PALACE, Y)      // DEKU PALACE
+#define FACE_POS_WOODFALL_Y         FACE_POS(WOODFALL, Y)         // WOODFALL
+#define FACE_POS_CLOCK_TOWN_Y       FACE_POS(CLOCK_TOWN, Y)       // CLOCK TOWN
+#define FACE_POS_SNOWHEAD_Y         FACE_POS(SNOWHEAD, Y)         // SNOWHEAD
+#define FACE_POS_IKANA_GRAVEYARD_Y  FACE_POS(IKANA_GRAVEYARD, Y)  // IKANA GRAVEYARD
+#define FACE_POS_IKANA_CANYON_Y     FACE_POS(IKANA_CANYON, Y)     // IKANA CANYON
+#define FACE_POS_GORON_VILLAGE_Y    FACE_POS(GORON_VILLAGE, Y)    // GORON VILLAGE
+#define FACE_POS_STONE_TOWER_Y      FACE_POS(STONE_TOWER, Y)      // STONE TOWER
 
 //Dots and Owls
 
 #define sVtxPageMapWorldQuadsOffset 15
 
-#define DOT_QUAD_POS(NAME, QUAD, AXIS) (NAME ## _ ## AXIS ## _F + QUAD ## _OFFSET_ ## AXIS)
+// #define QUAD_POS(NAME, QUAD, AXIS) (NAME ## _ ## AXIS ## _F + QUAD ## _OFFSET_ ## AXIS)
+#define QUAD_POS(NAME, QUAD, AXIS) (NAME ## _ ## AXIS)
 
-s16 new_sVtxPageMapWorldQuadsX[VTX_PAGE_MAP_WORLD_QUADS - sVtxPageMapWorldQuadsOffset] = {
-    DOT_QUAD_POS(GREAT_BAY, DOT, X),                 // mapPageVtx[120] world map region Great Bay
-    DOT_QUAD_POS(ZORA_HALL, DOT, X),                 // mapPageVtx[124] world map region Zora Hall
-    DOT_QUAD_POS(ROMANI_RANCH, DOT, X),              // mapPageVtx[128] world map region Romani Ranch
-    DOT_QUAD_POS(DEKU_PALACE, DOT, X),               // mapPageVtx[132] world map region Deku Palace
-    DOT_QUAD_POS(WOODFALL, DOT, X),                  // mapPageVtx[136] world map region Woodfall
-    DOT_QUAD_POS(CLOCK_TOWN, DOT, X),                // mapPageVtx[140] world map region Clock Town
-    DOT_QUAD_POS(SNOWHEAD, DOT, X),                  // mapPageVtx[144] world map region Snowhead
-    DOT_QUAD_POS(IKANA_GRAVEYARD, DOT, X),           // mapPageVtx[148] world map region Ikana Graveyard
-    DOT_QUAD_POS(IKANA_CANYON, DOT, X),              // mapPageVtx[152] world map region Ikana Canyon
-    DOT_QUAD_POS(GORON_VILLAGE, DOT, X),             // mapPageVtx[156] world map region Goron Village
-    DOT_QUAD_POS(STONE_TOWER, DOT, X),               // mapPageVtx[160] world map region Stone Tower
+f32 new_sVtxPageMapWorldQuadsX[VTX_PAGE_MAP_WORLD_QUADS - sVtxPageMapWorldQuadsOffset] = {
+    QUAD_POS(GREAT_BAY, DOT, X),                 // mapPageVtx[120] world map region Great Bay
+    QUAD_POS(ZORA_HALL, DOT, X),                 // mapPageVtx[124] world map region Zora Hall
+    QUAD_POS(ROMANI_RANCH, DOT, X),              // mapPageVtx[128] world map region Romani Ranch
+    QUAD_POS(DEKU_PALACE, DOT, X),               // mapPageVtx[132] world map region Deku Palace
+    QUAD_POS(WOODFALL, DOT, X),                  // mapPageVtx[136] world map region Woodfall
+    QUAD_POS(CLOCK_TOWN, DOT, X),                // mapPageVtx[140] world map region Clock Town
+    QUAD_POS(SNOWHEAD, DOT, X),                  // mapPageVtx[144] world map region Snowhead
+    QUAD_POS(IKANA_GRAVEYARD, DOT, X),           // mapPageVtx[148] world map region Ikana Graveyard
+    QUAD_POS(IKANA_CANYON, DOT, X),              // mapPageVtx[152] world map region Ikana Canyon
+    QUAD_POS(GORON_VILLAGE, DOT, X),             // mapPageVtx[156] world map region Goron Village
+    QUAD_POS(STONE_TOWER, DOT, X),               // mapPageVtx[160] world map region Stone Tower
 
-    DOT_QUAD_POS(OWL_WARP_GREAT_BAY_COAST, OWL, X),  // mapPageVtx[164] world map owl warp Great Bay Coast
-    DOT_QUAD_POS(OWL_WARP_ZORA_CAPE, OWL, X),        // mapPageVtx[168] world map owl warp Zora Cape
-    DOT_QUAD_POS(OWL_WARP_SNOWHEAD, OWL, X),         // mapPageVtx[172] world map owl warp Snowhead
-    DOT_QUAD_POS(OWL_WARP_MOUNTAIN_VILLAGE, OWL, X), // mapPageVtx[176] world map owl warp Mountain Village
-    DOT_QUAD_POS(OWL_WARP_CLOCK_TOWN, OWL, X),       // mapPageVtx[180] world map owl warp Clock Town
-    DOT_QUAD_POS(OWL_WARP_MILK_ROAD, OWL, X),        // mapPageVtx[184] world map owl warp Milk Road
-    DOT_QUAD_POS(OWL_WARP_WOODFALL, OWL, X),         // mapPageVtx[188] world map owl warp Woodfall
-    DOT_QUAD_POS(OWL_WARP_SOUTHERN_SWAMP, OWL, X),   // mapPageVtx[192] world map owl warp Southern Swamp
-    DOT_QUAD_POS(OWL_WARP_IKANA_CANYON, OWL, X),     // mapPageVtx[196] world map owl warp Ikana Canyon
-    DOT_QUAD_POS(OWL_WARP_STONE_TOWER, OWL, X),      // mapPageVtx[200] world map owl warp Stone Tower
+    QUAD_POS(OWL_WARP_GREAT_BAY_COAST, OWL, X),  // mapPageVtx[164] world map owl warp Great Bay Coast
+    QUAD_POS(OWL_WARP_ZORA_CAPE, OWL, X),        // mapPageVtx[168] world map owl warp Zora Cape
+    QUAD_POS(OWL_WARP_SNOWHEAD, OWL, X),         // mapPageVtx[172] world map owl warp Snowhead
+    QUAD_POS(OWL_WARP_MOUNTAIN_VILLAGE, OWL, X), // mapPageVtx[176] world map owl warp Mountain Village
+    QUAD_POS(OWL_WARP_CLOCK_TOWN, OWL, X),       // mapPageVtx[180] world map owl warp Clock Town
+    QUAD_POS(OWL_WARP_MILK_ROAD, OWL, X),        // mapPageVtx[184] world map owl warp Milk Road
+    QUAD_POS(OWL_WARP_WOODFALL, OWL, X),         // mapPageVtx[188] world map owl warp Woodfall
+    QUAD_POS(OWL_WARP_SOUTHERN_SWAMP, OWL, X),   // mapPageVtx[192] world map owl warp Southern Swamp
+    QUAD_POS(OWL_WARP_IKANA_CANYON, OWL, X),     // mapPageVtx[196] world map owl warp Ikana Canyon
+    QUAD_POS(OWL_WARP_STONE_TOWER, OWL, X),      // mapPageVtx[200] world map owl warp Stone Tower
 };
 
-s16 new_sVtxPageMapWorldQuadsY[VTX_PAGE_MAP_WORLD_QUADS - sVtxPageMapWorldQuadsOffset] = {
-    DOT_QUAD_POS(GREAT_BAY, DOT, Y),                 // mapPageVtx[120] world map region Great Bay
-    DOT_QUAD_POS(ZORA_HALL, DOT, Y),                 // mapPageVtx[124] world map region Zora Hall
-    DOT_QUAD_POS(ROMANI_RANCH, DOT, Y),              // mapPageVtx[128] world map region Romani Ranch
-    DOT_QUAD_POS(DEKU_PALACE, DOT, Y),               // mapPageVtx[132] world map region Deku Palace
-    DOT_QUAD_POS(WOODFALL, DOT, Y),                  // mapPageVtx[136] world map region Woodfall
-    DOT_QUAD_POS(CLOCK_TOWN, DOT, Y),                // mapPageVtx[140] world map region Clock Town
-    DOT_QUAD_POS(SNOWHEAD, DOT, Y),                  // mapPageVtx[144] world map region Snowhead
-    DOT_QUAD_POS(IKANA_GRAVEYARD, DOT, Y),           // mapPageVtx[148] world map region Ikana Graveyard
-    DOT_QUAD_POS(IKANA_CANYON, DOT, Y),              // mapPageVtx[152] world map region Ikana Canyon
-    DOT_QUAD_POS(GORON_VILLAGE, DOT, Y),             // mapPageVtx[156] world map region Goron Village
-    DOT_QUAD_POS(STONE_TOWER, DOT, Y),               // mapPageVtx[160] world map region Stone Tower
+f32 new_sVtxPageMapWorldQuadsY[VTX_PAGE_MAP_WORLD_QUADS - sVtxPageMapWorldQuadsOffset] = {
+    QUAD_POS(GREAT_BAY, DOT, Y),                 // mapPageVtx[120] world map region Great Bay
+    QUAD_POS(ZORA_HALL, DOT, Y),                 // mapPageVtx[124] world map region Zora Hall
+    QUAD_POS(ROMANI_RANCH, DOT, Y),              // mapPageVtx[128] world map region Romani Ranch
+    QUAD_POS(DEKU_PALACE, DOT, Y),               // mapPageVtx[132] world map region Deku Palace
+    QUAD_POS(WOODFALL, DOT, Y),                  // mapPageVtx[136] world map region Woodfall
+    QUAD_POS(CLOCK_TOWN, DOT, Y),                // mapPageVtx[140] world map region Clock Town
+    QUAD_POS(SNOWHEAD, DOT, Y),                  // mapPageVtx[144] world map region Snowhead
+    QUAD_POS(IKANA_GRAVEYARD, DOT, Y),           // mapPageVtx[148] world map region Ikana Graveyard
+    QUAD_POS(IKANA_CANYON, DOT, Y),              // mapPageVtx[152] world map region Ikana Canyon
+    QUAD_POS(GORON_VILLAGE, DOT, Y),             // mapPageVtx[156] world map region Goron Village
+    QUAD_POS(STONE_TOWER, DOT, Y),               // mapPageVtx[160] world map region Stone Tower
 
-    DOT_QUAD_POS(OWL_WARP_GREAT_BAY_COAST, OWL, Y),  // mapPageVtx[164] world map owl warp Great Bay Coast
-    DOT_QUAD_POS(OWL_WARP_ZORA_CAPE, OWL, Y),        // mapPageVtx[168] world map owl warp Zora Cape
-    DOT_QUAD_POS(OWL_WARP_SNOWHEAD, OWL, Y),         // mapPageVtx[172] world map owl warp Snowhead
-    DOT_QUAD_POS(OWL_WARP_MOUNTAIN_VILLAGE, OWL, Y), // mapPageVtx[176] world map owl warp Mountain Village
-    DOT_QUAD_POS(OWL_WARP_CLOCK_TOWN, OWL, Y),       // mapPageVtx[180] world map owl warp Clock Town
-    DOT_QUAD_POS(OWL_WARP_MILK_ROAD, OWL, Y),        // mapPageVtx[184] world map owl warp Milk Road
-    DOT_QUAD_POS(OWL_WARP_WOODFALL, OWL, Y),         // mapPageVtx[188] world map owl warp Woodfall
-    DOT_QUAD_POS(OWL_WARP_SOUTHERN_SWAMP, OWL, Y),   // mapPageVtx[192] world map owl warp Southern Swamp
-    DOT_QUAD_POS(OWL_WARP_IKANA_CANYON, OWL, Y),     // mapPageVtx[196] world map owl warp Ikana Canyon
-    DOT_QUAD_POS(OWL_WARP_STONE_TOWER, OWL, Y),      // mapPageVtx[200] world map owl warp Stone Tower
+    QUAD_POS(OWL_WARP_GREAT_BAY_COAST, OWL, Y),  // mapPageVtx[164] world map owl warp Great Bay Coast
+    QUAD_POS(OWL_WARP_ZORA_CAPE, OWL, Y),        // mapPageVtx[168] world map owl warp Zora Cape
+    QUAD_POS(OWL_WARP_SNOWHEAD, OWL, Y),         // mapPageVtx[172] world map owl warp Snowhead
+    QUAD_POS(OWL_WARP_MOUNTAIN_VILLAGE, OWL, Y), // mapPageVtx[176] world map owl warp Mountain Village
+    QUAD_POS(OWL_WARP_CLOCK_TOWN, OWL, Y),       // mapPageVtx[180] world map owl warp Clock Town
+    QUAD_POS(OWL_WARP_MILK_ROAD, OWL, Y),        // mapPageVtx[184] world map owl warp Milk Road
+    QUAD_POS(OWL_WARP_WOODFALL, OWL, Y),         // mapPageVtx[188] world map owl warp Woodfall
+    QUAD_POS(OWL_WARP_SOUTHERN_SWAMP, OWL, Y),   // mapPageVtx[192] world map owl warp Southern Swamp
+    QUAD_POS(OWL_WARP_IKANA_CANYON, OWL, Y),     // mapPageVtx[196] world map owl warp Ikana Canyon
+    QUAD_POS(OWL_WARP_STONE_TOWER, OWL, Y),      // mapPageVtx[200] world map owl warp Stone Tower
 };
 
 // Cursor
-#define SCREEN_POS(NAME, AXIS) (NAME ## _ ## AXIS ## _F * MAP_TO_SCREEN_ ## AXIS)
+#define SCREEN_POS(NAME, AXIS) ((NAME ## _ ## AXIS - SCREEN_CENTER_PX_ ## AXIS) * MAP_TO_SCREEN_ ## AXIS)
 
 #define GREAT_BAY_X_CURSOR       SCREEN_POS(GREAT_BAY, X)
 #define ZORA_HALL_X_CURSOR       SCREEN_POS(ZORA_HALL, X)
@@ -202,85 +151,126 @@ s16 new_sVtxPageMapWorldQuadsY[VTX_PAGE_MAP_WORLD_QUADS - sVtxPageMapWorldQuadsO
 
 #define CURSOR_POS_CENTER(NAME, AXIS) (NAME ## _ ## AXIS ## _CURSOR + CURSOR_OFFSET_ ## AXIS)
 
-f32 new_sWorldMapCursorsX[REGION_MAX] = {
-    CURSOR_POS_CENTER(GREAT_BAY, X),         // GREAT BAY
-    CURSOR_POS_CENTER(ZORA_HALL, X),         // ZORA HALL
-    CURSOR_POS_CENTER(ROMANI_RANCH, X),      // ROMANI RANCH
-    CURSOR_POS_CENTER(DEKU_PALACE, X),       // DEKU PALACE
-    CURSOR_POS_CENTER(WOODFALL, X),          // WOODFALL
-    CURSOR_POS_CENTER(CLOCK_TOWN, X),        // CLOCK TOWN
-    CURSOR_POS_CENTER(SNOWHEAD, X),          // SNOWHEAD
-    CURSOR_POS_CENTER(IKANA_GRAVEYARD, X),   // IKANA GRAVEYARD
-    CURSOR_POS_CENTER(IKANA_CANYON, X),      // IKANA CANYON
-    CURSOR_POS_CENTER(GORON_VILLAGE, X),     // GORON VILLAGE
-    CURSOR_POS_CENTER(STONE_TOWER, X),       // STONE TOWER
-};
+#define CURSOR_POS_CENTER_GREAT_BAY_X       CURSOR_POS_CENTER(GREAT_BAY, X)         // GREAT BAY
+#define CURSOR_POS_CENTER_ZORA_HALL_X       CURSOR_POS_CENTER(ZORA_HALL, X)         // ZORA HALL
+#define CURSOR_POS_CENTER_ROMANI_RANCH_X    CURSOR_POS_CENTER(ROMANI_RANCH, X)      // ROMANI RANCH
+#define CURSOR_POS_CENTER_DEKU_PALACE_X     CURSOR_POS_CENTER(DEKU_PALACE, X)       // DEKU PALACE
+#define CURSOR_POS_CENTER_WOODFALL_X        CURSOR_POS_CENTER(WOODFALL, X)          // WOODFALL
+#define CURSOR_POS_CENTER_CLOCK_TOWN_X      CURSOR_POS_CENTER(CLOCK_TOWN, X)        // CLOCK TOWN
+#define CURSOR_POS_CENTER_SNOWHEAD_X        CURSOR_POS_CENTER(SNOWHEAD, X)          // SNOWHEAD
+#define CURSOR_POS_CENTER_IKANA_GRAVEYARD_X CURSOR_POS_CENTER(IKANA_GRAVEYARD, X)   // IKANA GRAVEYARD
+#define CURSOR_POS_CENTER_IKANA_CANYON_X    CURSOR_POS_CENTER(IKANA_CANYON, X)      // IKANA CANYON
+#define CURSOR_POS_CENTER_GORON_VILLAGE_X   CURSOR_POS_CENTER(GORON_VILLAGE, X)     // GORON VILLAGE
+#define CURSOR_POS_CENTER_STONE_TOWER_X     CURSOR_POS_CENTER(STONE_TOWER, X)       // STONE TOWER
 
-f32 new_sWorldMapCursorsY[REGION_MAX] = {
-    CURSOR_POS_CENTER(GREAT_BAY, Y),       // GREAT BAY
-    CURSOR_POS_CENTER(ZORA_HALL, Y),       // ZORA HALL
-    CURSOR_POS_CENTER(ROMANI_RANCH, Y),    // ROMANI RANCH
-    CURSOR_POS_CENTER(DEKU_PALACE, Y),     // DEKU PALACE
-    CURSOR_POS_CENTER(WOODFALL, Y),        // WOODFALL
-    CURSOR_POS_CENTER(CLOCK_TOWN, Y),      // CLOCK TOWN
-    CURSOR_POS_CENTER(SNOWHEAD, Y),        // SNOWHEAD
-    CURSOR_POS_CENTER(IKANA_GRAVEYARD, Y), // IKANA GRAVEYARD
-    CURSOR_POS_CENTER(IKANA_CANYON, Y),    // IKANA CANYON
-    CURSOR_POS_CENTER(GORON_VILLAGE, Y),   // GORON VILLAGE
-    CURSOR_POS_CENTER(STONE_TOWER, Y),     // STONE TOWER
-};
+#define CURSOR_POS_CENTER_GREAT_BAY_Y       CURSOR_POS_CENTER(GREAT_BAY, Y)         // GREAT BAY
+#define CURSOR_POS_CENTER_ZORA_HALL_Y       CURSOR_POS_CENTER(ZORA_HALL, Y)         // ZORA HALL
+#define CURSOR_POS_CENTER_ROMANI_RANCH_Y    CURSOR_POS_CENTER(ROMANI_RANCH, Y)      // ROMANI RANCH
+#define CURSOR_POS_CENTER_DEKU_PALACE_Y     CURSOR_POS_CENTER(DEKU_PALACE, Y)       // DEKU PALACE
+#define CURSOR_POS_CENTER_WOODFALL_Y        CURSOR_POS_CENTER(WOODFALL, Y)          // WOODFALL
+#define CURSOR_POS_CENTER_CLOCK_TOWN_Y      CURSOR_POS_CENTER(CLOCK_TOWN, Y)        // CLOCK TOWN
+#define CURSOR_POS_CENTER_SNOWHEAD_Y        CURSOR_POS_CENTER(SNOWHEAD, Y)          // SNOWHEAD
+#define CURSOR_POS_CENTER_IKANA_GRAVEYARD_Y CURSOR_POS_CENTER(IKANA_GRAVEYARD, Y)   // IKANA GRAVEYARD
+#define CURSOR_POS_CENTER_IKANA_CANYON_Y    CURSOR_POS_CENTER(IKANA_CANYON, Y)      // IKANA CANYON
+#define CURSOR_POS_CENTER_GORON_VILLAGE_Y   CURSOR_POS_CENTER(GORON_VILLAGE, Y)     // GORON VILLAGE
+#define CURSOR_POS_CENTER_STONE_TOWER_Y     CURSOR_POS_CENTER(STONE_TOWER, Y)       // STONE TOWER
 
-f32 new_sOwlWarpWorldMapCursorsX[OWL_WARP_MAX - 1] = {
-    CURSOR_POS_CENTER(OWL_WARP_GREAT_BAY_COAST, X),     // OWL_WARP_GREAT_BAY_COAST
-    CURSOR_POS_CENTER(OWL_WARP_ZORA_CAPE, X),           // OWL_WARP_ZORA_CAPE
-    CURSOR_POS_CENTER(OWL_WARP_SNOWHEAD, X),            // OWL_WARP_SNOWHEAD
-    CURSOR_POS_CENTER(OWL_WARP_MOUNTAIN_VILLAGE, X),    // OWL_WARP_MOUNTAIN_VILLAGE
-    CURSOR_POS_CENTER(OWL_WARP_CLOCK_TOWN, X),          // OWL_WARP_CLOCK_TOWN
-    CURSOR_POS_CENTER(OWL_WARP_MILK_ROAD, X),           // OWL_WARP_MILK_ROAD
-    CURSOR_POS_CENTER(OWL_WARP_WOODFALL, X),            // OWL_WARP_WOODFALL
-    CURSOR_POS_CENTER(OWL_WARP_SOUTHERN_SWAMP, X),      // OWL_WARP_SOUTHERN_SWAMP
-    CURSOR_POS_CENTER(OWL_WARP_IKANA_CANYON, X),        // OWL_WARP_IKANA_CANYON
-    CURSOR_POS_CENTER(OWL_WARP_STONE_TOWER, X),         // OWL_WARP_STONE_TOWER
-};
+#define CURSOR_POS_CENTER_OWL_WARP_GREAT_BAY_COAST_X    CURSOR_POS_CENTER(OWL_WARP_GREAT_BAY_COAST, X)  // OWL_WARP_GREAT_BAY_COAST
+#define CURSOR_POS_CENTER_OWL_WARP_ZORA_CAPE_X          CURSOR_POS_CENTER(OWL_WARP_ZORA_CAPE, X)        // OWL_WARP_ZORA_CAPE
+#define CURSOR_POS_CENTER_OWL_WARP_SNOWHEAD_X           CURSOR_POS_CENTER(OWL_WARP_SNOWHEAD, X)         // OWL_WARP_SNOWHEAD
+#define CURSOR_POS_CENTER_OWL_WARP_MOUNTAIN_VILLAGE_X   CURSOR_POS_CENTER(OWL_WARP_MOUNTAIN_VILLAGE, X) // OWL_WARP_MOUNTAIN_VILLAGE
+#define CURSOR_POS_CENTER_OWL_WARP_CLOCK_TOWN_X         CURSOR_POS_CENTER(OWL_WARP_CLOCK_TOWN, X)       // OWL_WARP_CLOCK_TOWN
+#define CURSOR_POS_CENTER_OWL_WARP_MILK_ROAD_X          CURSOR_POS_CENTER(OWL_WARP_MILK_ROAD, X)        // OWL_WARP_MILK_ROAD
+#define CURSOR_POS_CENTER_OWL_WARP_WOODFALL_X           CURSOR_POS_CENTER(OWL_WARP_WOODFALL, X)         // OWL_WARP_WOODFALL
+#define CURSOR_POS_CENTER_OWL_WARP_SOUTHERN_SWAMP_X     CURSOR_POS_CENTER(OWL_WARP_SOUTHERN_SWAMP, X)   // OWL_WARP_SOUTHERN_SWAMP
+#define CURSOR_POS_CENTER_OWL_WARP_IKANA_CANYON_X       CURSOR_POS_CENTER(OWL_WARP_IKANA_CANYON, X)     // OWL_WARP_IKANA_CANYON
+#define CURSOR_POS_CENTER_OWL_WARP_STONE_TOWER_X        CURSOR_POS_CENTER(OWL_WARP_STONE_TOWER, X)      // OWL_WARP_STONE_TOWER
 
-f32 new_sOwlWarpWorldMapCursorsY[OWL_WARP_MAX - 1] = {
-    CURSOR_POS_CENTER(OWL_WARP_GREAT_BAY_COAST, Y),  // OWL_WARP_GREAT_BAY_COAST
-    CURSOR_POS_CENTER(OWL_WARP_ZORA_CAPE, Y),        // OWL_WARP_ZORA_CAPE
-    CURSOR_POS_CENTER(OWL_WARP_SNOWHEAD, Y),         // OWL_WARP_SNOWHEAD
-    CURSOR_POS_CENTER(OWL_WARP_MOUNTAIN_VILLAGE, Y), // OWL_WARP_MOUNTAIN_VILLAGE
-    CURSOR_POS_CENTER(OWL_WARP_CLOCK_TOWN, Y),       // OWL_WARP_CLOCK_TOWN
-    CURSOR_POS_CENTER(OWL_WARP_MILK_ROAD, Y),        // OWL_WARP_MILK_ROAD
-    CURSOR_POS_CENTER(OWL_WARP_WOODFALL, Y),         // OWL_WARP_WOODFALL
-    CURSOR_POS_CENTER(OWL_WARP_SOUTHERN_SWAMP, Y),   // OWL_WARP_SOUTHERN_SWAMP
-    CURSOR_POS_CENTER(OWL_WARP_IKANA_CANYON, Y),     // OWL_WARP_IKANA_CANYON
-    CURSOR_POS_CENTER(OWL_WARP_STONE_TOWER, Y),      // OWL_WARP_STONE_TOWER
-};
+#define CURSOR_POS_CENTER_OWL_WARP_GREAT_BAY_COAST_Y    CURSOR_POS_CENTER(OWL_WARP_GREAT_BAY_COAST, Y)  // OWL_WARP_GREAT_BAY_COAST
+#define CURSOR_POS_CENTER_OWL_WARP_ZORA_CAPE_Y          CURSOR_POS_CENTER(OWL_WARP_ZORA_CAPE, Y)        // OWL_WARP_ZORA_CAPE
+#define CURSOR_POS_CENTER_OWL_WARP_SNOWHEAD_Y           CURSOR_POS_CENTER(OWL_WARP_SNOWHEAD, Y)         // OWL_WARP_SNOWHEAD
+#define CURSOR_POS_CENTER_OWL_WARP_MOUNTAIN_VILLAGE_Y   CURSOR_POS_CENTER(OWL_WARP_MOUNTAIN_VILLAGE, Y) // OWL_WARP_MOUNTAIN_VILLAGE
+#define CURSOR_POS_CENTER_OWL_WARP_CLOCK_TOWN_Y         CURSOR_POS_CENTER(OWL_WARP_CLOCK_TOWN, Y)       // OWL_WARP_CLOCK_TOWN
+#define CURSOR_POS_CENTER_OWL_WARP_MILK_ROAD_Y          CURSOR_POS_CENTER(OWL_WARP_MILK_ROAD, Y)        // OWL_WARP_MILK_ROAD
+#define CURSOR_POS_CENTER_OWL_WARP_WOODFALL_Y           CURSOR_POS_CENTER(OWL_WARP_WOODFALL, Y)         // OWL_WARP_WOODFALL
+#define CURSOR_POS_CENTER_OWL_WARP_SOUTHERN_SWAMP_Y     CURSOR_POS_CENTER(OWL_WARP_SOUTHERN_SWAMP, Y)   // OWL_WARP_SOUTHERN_SWAMP
+#define CURSOR_POS_CENTER_OWL_WARP_IKANA_CANYON_Y       CURSOR_POS_CENTER(OWL_WARP_IKANA_CANYON, Y)     // OWL_WARP_IKANA_CANYON
+#define CURSOR_POS_CENTER_OWL_WARP_STONE_TOWER_Y        CURSOR_POS_CENTER(OWL_WARP_STONE_TOWER, Y)      // OWL_WARP_STONE_TOWER
 
-void map_overhaul_update_map(void) {
-    // recomp_printf("Player pos: %f, %f\n", playerMinimapUnitPos.x, playerMinimapUnitPos.z);
+// Dynamic float position calculations
 
-    UPDATE_ARRAY(sWorldMapCursorsRectLeft, new_sWorldMapCursorsRectLeft, REGION_MAX);
-    UPDATE_ARRAY(sWorldMapCursorsRectTop, new_sWorldMapCursorsRectTop, REGION_MAX);
+#define SELECT_POS(VALUE, SYMBOL, DATA)                                        \
+    case VALUE:                                                                \
+        pos->x = DATA ## _ ## SYMBOL ## _X;                                    \
+        pos->z = DATA ## _ ## SYMBOL ## _Y;                                    \
+        break
 
-    UPDATE_ARRAY(sWorldMapCursorsX, new_sWorldMapCursorsX, REGION_MAX);
-    UPDATE_ARRAY(sWorldMapCursorsY, new_sWorldMapCursorsY, REGION_MAX);
+#define SELECT_LOCATIONS(OFFSET, DATA)                  \
+    SELECT_POS(OFFSET,      GREAT_BAY,       DATA);     \
+    SELECT_POS(OFFSET + 1,  ZORA_HALL,       DATA);     \
+    SELECT_POS(OFFSET + 2,  ROMANI_RANCH,    DATA);     \
+    SELECT_POS(OFFSET + 3,  DEKU_PALACE,     DATA);     \
+    SELECT_POS(OFFSET + 4,  WOODFALL,        DATA);     \
+    SELECT_POS(OFFSET + 5,  CLOCK_TOWN,      DATA);     \
+    SELECT_POS(OFFSET + 6,  SNOWHEAD,        DATA);     \
+    SELECT_POS(OFFSET + 7,  IKANA_GRAVEYARD, DATA);     \
+    SELECT_POS(OFFSET + 8,  IKANA_CANYON,    DATA);     \
+    SELECT_POS(OFFSET + 9,  GORON_VILLAGE,   DATA);     \
+    SELECT_POS(OFFSET + 10, STONE_TOWER,     DATA)
 
-    UPDATE_ARRAY(sOwlWarpWorldMapCursorsX, new_sOwlWarpWorldMapCursorsX, REGION_MAX - 1);
-    UPDATE_ARRAY(sOwlWarpWorldMapCursorsY, new_sOwlWarpWorldMapCursorsY, REGION_MAX - 1);
+#define SELECT_WARPS(OFFSET, DATA)  \
+    SELECT_POS(OFFSET,     OWL_WARP_GREAT_BAY_COAST,    DATA);     \
+    SELECT_POS(OFFSET + 1, OWL_WARP_ZORA_CAPE,          DATA);     \
+    SELECT_POS(OFFSET + 2, OWL_WARP_SNOWHEAD,           DATA);     \
+    SELECT_POS(OFFSET + 3, OWL_WARP_MOUNTAIN_VILLAGE,   DATA);     \
+    SELECT_POS(OFFSET + 4, OWL_WARP_CLOCK_TOWN,         DATA);     \
+    SELECT_POS(OFFSET + 5, OWL_WARP_MILK_ROAD,          DATA);     \
+    SELECT_POS(OFFSET + 6, OWL_WARP_WOODFALL,           DATA);     \
+    SELECT_POS(OFFSET + 7, OWL_WARP_SOUTHERN_SWAMP,     DATA);     \
+    SELECT_POS(OFFSET + 8, OWL_WARP_IKANA_CANYON,       DATA);     \
+    SELECT_POS(OFFSET + 9, OWL_WARP_STONE_TOWER,        DATA)
 
-    UPDATE_ARRAY((&sVtxPageMapWorldQuadsX[sVtxPageMapWorldQuadsOffset]), new_sVtxPageMapWorldQuadsX, VTX_PAGE_MAP_WORLD_QUADS - sVtxPageMapWorldQuadsOffset);
-    UPDATE_ARRAY((&sVtxPageMapWorldQuadsY[sVtxPageMapWorldQuadsOffset]), new_sVtxPageMapWorldQuadsY, VTX_PAGE_MAP_WORLD_QUADS - sVtxPageMapWorldQuadsOffset);
+
+void map_overhaul_get_face_position(size_t i, Vec2f* pos) {
+    switch(i) {
+        SELECT_LOCATIONS(0, FACE_POS);
+    }
+}
+
+void get_cursor_position_map(size_t i, Vec2f* pos) {
+    switch(i) {
+        SELECT_LOCATIONS(0, CURSOR_POS_CENTER);
+    }
+}
+
+void get_cursor_position_warp(size_t i, Vec2f* pos) {
+    switch(i) {
+        SELECT_WARPS(0, CURSOR_POS_CENTER);
+    }
+}
+
+void map_overhul_update_cursor_position(PlayState *play) {
+    PauseContext* pauseCtx = &play->pauseCtx;
+
+    Vec2f cursor_pos;
+    s16 cursorPoint = pauseCtx->cursorPoint[PAUSE_WORLD_MAP];
+    if (IS_PAUSE_STATE_OWL_WARP(pauseCtx)) {
+        get_cursor_position_warp(cursorPoint, &cursor_pos);
+        sOwlWarpWorldMapCursorsX[cursorPoint] = cursor_pos.x;
+        sOwlWarpWorldMapCursorsY[cursorPoint] = cursor_pos.z;
+    } else {
+        get_cursor_position_map(cursorPoint, &cursor_pos);
+        sWorldMapCursorsX[cursorPoint] = cursor_pos.x;
+        sWorldMapCursorsY[cursorPoint] = cursor_pos.z;
+    }
 }
 
 Vec2f map_overhaul_playerMinimapUnitPos;
 minimap_map_t* minimapToWorldMap = NULL;
 
-void map_overhaul_reload_minimap_data(void) {
+void map_overhaul_reload_minimap_data(s8 room) {
     s32 scene = ((void)0, gSaveContext.save.entrance) >> 9;
-
-    recomp_printf("Scene: %d\n", scene);
-
-    u8 room = 0;
+    recomp_printf("scene: %d, room: %d\n", scene, room);
 
     minimap_map_t* scene_maps = MiniToWorld[scene];
     if (scene_maps != NULL) {
@@ -289,26 +279,6 @@ void map_overhaul_reload_minimap_data(void) {
     } else {
         minimapToWorldMap = NULL;
     }
-}
-
-void Math_Vec2f_Sum(Vec2f* l, Vec2f* r, Vec2f* dest) {
-    dest->x = l->x + r->x;
-    dest->z = l->z + r->z;
-}
-
-void Math_Vec2f_Diff(Vec2f* l, Vec2f* r, Vec2f* dest) {
-    dest->x = l->x - r->x;
-    dest->z = l->z - r->z;
-}
-
-void Math_Vec2f_Scale(Vec2f* vec, f32 scale) {
-    vec->x *= scale;
-    vec->z *= scale;
-}
-
-void Math_Vec2f_ScaleAndStore(Vec2f* vec, f32 scale, Vec2f* dest) {
-    dest->x = vec->x * scale;
-    dest->z = vec->z * scale;
 }
 
 bool map_overhaul_minimap_unit_to_world_map_position(Vec2f* minimapPos, Vec2f* dest) {
