@@ -5,20 +5,13 @@
 #include "assets/interface/icon_item_field_static/icon_item_field_static.h"
 #include "assets/archives/icon_item_24_static/icon_item_24_static_yar.h"
 
-extern TexturePtr sCloudTextures[];
-extern s16 sWorldMapDotPrimColors[][3];
-extern s16 sWorldMapDotEnvColors[][3];
-extern s16 sGreatFairySpawnRegions[];
-
-RECOMP_HOOK("KaleidoScope_UpdateCursorSize") void on_KaleidoScope_UpdateCursorSize(PlayState* play) {
-    map_overhul_update_cursor_position(play);
-}
+#define MAP_TRANSFORM_ID 0x19U
 
 Vtx gMapFaceVtx[] = {
-    VTX(-8,  8, 0,  0 << 5,  0 << 5, 0, 0, 0, 0xFF),
-    VTX( 8,  8, 0, 16 << 5,  0 << 5, 0, 0, 0, 0xFF),
-    VTX( 8, -8, 0, 16 << 5, 16 << 5, 0, 0, 0, 0xFF),
-    VTX(-8, -8, 0,  0 << 5, 16 << 5, 0, 0, 0, 0xFF),
+    VTX(-8, 16, 0,  0 << 5,  0 << 5, 0, 0, 0, 0xFF),
+    VTX( 8, 16, 0, 16 << 5,  0 << 5, 0, 0, 0, 0xFF),
+    VTX( 8,  0, 0, 16 << 5, 16 << 5, 0, 0, 0, 0xFF),
+    VTX(-8,  0, 0,  0 << 5, 16 << 5, 0, 0, 0, 0xFF),
 };
 
 Vtx gMapDotVtx[] = {
@@ -34,6 +27,28 @@ Vtx gMapWarpVtx[] = {
     VTX( 12, -6, 0, 24 << 5, 12 << 5, 0, 0, 0, 0xFF),
     VTX(-12, -6, 0,  0 << 5, 12 << 5, 0, 0, 0, 0xFF),
 };
+
+#include "overlay_data.c"
+
+#define DRAW_OVERLAY(pkt, name)                                                                                                         \
+    do {                                                                                                                                \
+        Matrix_Push();                                                                                                                  \
+        Matrix_Translate(                                                                                                               \
+            name ## _OVERLAY_X - SCREEN_CENTER_PX_X,                                                                                    \
+            SCREEN_CENTER_PX_Y - name ## _OVERLAY_Y + offsetY,                                                                          \
+            0.0f, MTXMODE_APPLY);                                                                                                       \
+        MATRIX_FINALIZE_AND_LOAD(pkt, __gfxCtx);                                                                                        \
+                                                                                                                                        \
+        gSPVertex(pkt, &name ## OverlayVtx, 4, 0);                                                                                      \
+                                                                                                                                        \
+        gDPLoadTextureBlock(pkt, name ## OverlayTex, G_IM_FMT_RGBA, G_IM_SIZ_32b, name ## _OVERLAY_WIDTH, name ## _OVERLAY_HEIGHT, 0,   \
+                            G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD,                 \
+                            G_TX_NOLOD);                                                                                                \
+                                                                                                                                        \
+        gSP1Quadrangle(pkt, 0, 1, 2, 3, 0);                                                                                             \
+                                                                                                                                        \
+        Matrix_Pop();                                                                                                                   \
+    } while(false)
 
 RECOMP_IMPORT("*", void recomp_printf(char* temp, ...));
 
@@ -55,6 +70,15 @@ static Vec2f DEFAULT_ZOOM_OFFSET = { 0.0, -5.0 };
 
 Vec2f zoom_offset = { 0.0, 0.0 };
 f32 zoom_scale = 1.0;
+
+RECOMP_HOOK("KaleidoScope_UpdateCursorSize") void on_KaleidoScope_UpdateCursorSize(PlayState* play) {
+    map_overhul_update_cursor_position(play);
+}
+
+extern TexturePtr sCloudTextures[];
+extern s16 sWorldMapDotPrimColors[][3];
+extern s16 sWorldMapDotEnvColors[][3];
+extern s16 sGreatFairySpawnRegions[];
 
 extern u16 sOwlWarpPauseItems[];
 
@@ -330,6 +354,14 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
 
     KaleidoScope_SetCursorVtxPos(pauseCtx, pauseCtx->cursorSlot[PAUSE_MAP] * 4, pauseCtx->mapPageVtx);
 
+    // @mod Apply additional offset when map opens or closes,
+    f32 offsetY = 0.0f;
+    if ((pauseCtx->state == PAUSE_STATE_UNPAUSE_SETUP) ||
+        (pauseCtx->state == PAUSE_STATE_OWL_WARP_3) ||
+        (pauseCtx->state == PAUSE_STATE_OWL_WARP_6)) {
+        offsetY = 80.0f;
+    }
+
     // @mod Add support for zoom transformations.
     gEXMatrixGroupSimple(POLY_OPA_DISP++, MAP_TRANSFORM_ID, G_EX_PUSH, G_MTX_MODELVIEW,
         G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE);
@@ -427,12 +459,32 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
             G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
 
         gSP1Quadrangle(POLY_OPA_DISP++, j, j + 2, j + 3, j + 1, 0);
-
     }
 
     Vtx* print_vtx = &pauseCtx->mapPageVtx[(QUAD_MAP_PAGE_WORLD_IMAGE_FIRST + 0) * 4];
     // recomp_printf("pauseCtx->mainState: %d, X: %d, Y: %d, Z: %d\n", pauseCtx->mainState, print_vtx->v.ob[0], print_vtx->v.ob[1], print_vtx->v.ob[2]);
     // recomp_printf("zoom_scale: %f, zoom_offset_x: %f, zoom_offset_y: %f\n", zoom_scale, zoom_offset.x, zoom_offset.z);
+
+    // @mod
+    gDPPipeSync(POLY_OPA_DISP++);
+
+    gSPTexture(POLY_OPA_DISP++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
+
+    gDPSetCombineMode(POLY_OPA_DISP++, G_CC_MODULATEIA_PRIM, G_CC_MODULATEIA_PRIM);
+
+    gDPSetOtherMode(POLY_OPA_DISP++, G_AD_PATTERN | G_CD_MAGICSQ | G_CK_NONE | G_TC_FILT | G_TF_POINT | G_TT_NONE | G_TL_TILE |
+                        G_TD_CLAMP | G_TP_PERSP | G_CYC_1CYCLE | G_PM_NPRIMITIVE,
+                    G_AC_THRESHOLD | G_ZS_PIXEL | G_RM_XLU_SURF | G_RM_XLU_SURF2);
+
+    gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 255, 255, 255, pauseCtx->alpha);
+
+    gSPClearGeometryMode(POLY_OPA_DISP++, G_CULL_BACK);
+
+    // @mod Draw map overlays.
+    DRAW_OVERLAY(POLY_OPA_DISP++, GreatBayCleared);
+
+
+    MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, play->state.gfxCtx);
 
     Gfx_SetupDL42_Opa(play->state.gfxCtx);
 
@@ -514,11 +566,8 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
                 gSPMatrix(POLY_OPA_DISP++, &gIdentityMtx, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
                 Matrix_Translate(
                     (new_sVtxPageMapWorldQuadsX[i] - SCREEN_CENTER_PX_X + zoom_offset.x) * zoom_scale,
-                    (SCREEN_CENTER_PX_Y - new_sVtxPageMapWorldQuadsY[i] - zoom_offset.z) * zoom_scale,
+                    (SCREEN_CENTER_PX_Y - new_sVtxPageMapWorldQuadsY[i] - zoom_offset.z) * zoom_scale + offsetY,
                     0.0f, MTXMODE_APPLY);
-                if (pauseCtx->state == PAUSE_STATE_UNPAUSE_SETUP) {
-                    Matrix_Translate(0.0f, 80.0f, 0.0f, MTXMODE_APPLY);
-                }
                 MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, play->state.gfxCtx);
 
                 gSPVertex(POLY_OPA_DISP++, gMapDotVtx, 4, 0);
@@ -562,11 +611,8 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
                 gSPMatrix(POLY_OPA_DISP++, &gIdentityMtx, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
                 Matrix_Translate(
                     (new_sVtxPageMapWorldQuadsX[11 + i] - SCREEN_CENTER_PX_X + zoom_offset.x) * zoom_scale,
-                    (SCREEN_CENTER_PX_Y - new_sVtxPageMapWorldQuadsY[11 + i] - zoom_offset.z) * zoom_scale,
+                    (SCREEN_CENTER_PX_Y - new_sVtxPageMapWorldQuadsY[11 + i] - zoom_offset.z) * zoom_scale + offsetY,
                     0.0f, MTXMODE_APPLY);
-                if (pauseCtx->state == PAUSE_STATE_OWL_WARP_3 || pauseCtx->state == PAUSE_STATE_OWL_WARP_6) {
-                    Matrix_Translate(0.0f, 80.0f, 0.0f, MTXMODE_APPLY);
-                }
                 MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, play->state.gfxCtx);
 
                 gSPVertex(POLY_OPA_DISP++, gMapWarpVtx, 4, 0);

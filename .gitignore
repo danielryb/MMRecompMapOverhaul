@@ -12,3 +12,5 @@
 patches.map
 build/
 .vscode/settings.json
+.venv/
+data/generated

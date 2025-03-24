@@ -332,23 +332,23 @@ def generate_minimap_to_worldmap_maps(from_center_x, from_center_y, offset_x, of
 
 if __name__ == "__main__":
     # map to:
-    # A = (44, 54) # top-left corner
-    # B = (260, 182) # bottom-right corner
+    # A = (51, 61) # top-left corner
+    # B = (267, 189) # bottom-right corner
     SCREEN_RESOLUTION   = (320, 240)
     MAP_RESOLUTION      = (216, 128)
-    OFFSET              = (0, 5)
+    OFFSET              = (-1, 5)
 
     # top-left corner
-    A = ( \
-            (SCREEN_RESOLUTION[0] / 2) - (MAP_RESOLUTION[0] / 2) + OFFSET[0], \
-            (SCREEN_RESOLUTION[1] / 2) - (MAP_RESOLUTION[1] / 2) + OFFSET[1], \
-        )
+    A = (                                                                   \
+        (SCREEN_RESOLUTION[0] / 2) - (MAP_RESOLUTION[0] / 2) + OFFSET[0],   \
+        (SCREEN_RESOLUTION[1] / 2) - (MAP_RESOLUTION[1] / 2) + OFFSET[1],   \
+    )
 
     # bottom-right corner
-    B = ( \
-            (SCREEN_RESOLUTION[0] / 2) + (MAP_RESOLUTION[0] / 2) + OFFSET[0], \
-            (SCREEN_RESOLUTION[1] / 2) + (MAP_RESOLUTION[1] / 2) + OFFSET[1], \
-        )
+    B = (                                                                   \
+        (SCREEN_RESOLUTION[0] / 2) + (MAP_RESOLUTION[0] / 2) + OFFSET[0],   \
+        (SCREEN_RESOLUTION[1] / 2) + (MAP_RESOLUTION[1] / 2) + OFFSET[1],   \
+    )
 
     # map from:
     a = (-2.5, 1.48148) # top-left corner
