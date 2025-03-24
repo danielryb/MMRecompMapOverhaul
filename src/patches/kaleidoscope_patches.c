@@ -331,6 +331,9 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
     KaleidoScope_SetCursorVtxPos(pauseCtx, pauseCtx->cursorSlot[PAUSE_MAP] * 4, pauseCtx->mapPageVtx);
 
     // @mod Add support for zoom transformations.
+    gEXMatrixGroupSimple(POLY_OPA_DISP++, MAP_TRANSFORM_ID, G_EX_PUSH, G_MTX_MODELVIEW,
+        G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE);
+
     Matrix_Push();
     Matrix_Scale(zoom_scale, zoom_scale, 1.0f, MTXMODE_APPLY);
     Matrix_Translate(zoom_offset.x, -zoom_offset.z, 0.0f, MTXMODE_APPLY);
@@ -685,6 +688,9 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
     }
 
     gDPPipeSync(POLY_OPA_DISP++);
+
+    // @mod Add support for zoom transformations.
+    gEXPopMatrixGroup(POLY_OPA_DISP++, G_MTX_MODELVIEW);
 
     CLOSE_DISPS(play->state.gfxCtx);
 }

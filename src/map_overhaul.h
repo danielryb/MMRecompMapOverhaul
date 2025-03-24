@@ -3,6 +3,7 @@
 
 #include "modding.h"
 #include "global.h"
+#include "rt64_extended_gbi.h"
 
 extern s16 sWorldMapCursorsRectLeft[REGION_MAX];
 extern s16 sWorldMapCursorsRectTop[REGION_MAX];
