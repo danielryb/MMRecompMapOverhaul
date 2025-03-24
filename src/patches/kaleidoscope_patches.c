@@ -123,6 +123,8 @@ RECOMP_PATCH void KaleidoScope_UpdateWorldMapCursor(PlayState* play) {
 
                     world_map_state = WORLD_MAP_STATE_TRANSITION;
                     pauseCtx->mainState = PAUSE_MAIN_STATE_SONG_PLAYBACK_INIT;
+
+                    Audio_PlaySfx(NA_SE_SY_CAMERA_ZOOM_DOWN_2);
                 }
 
                 break;
@@ -158,6 +160,8 @@ RECOMP_PATCH void KaleidoScope_UpdateWorldMapCursor(PlayState* play) {
 
                         world_map_state = WORLD_MAP_STATE_TRANSITION;
                         pauseCtx->mainState = PAUSE_MAIN_STATE_SONG_PLAYBACK_INIT;
+
+                        Audio_PlaySfx(NA_SE_SY_ATTENTION_ON);
                     }
 
                     pauseCtx->cursorColorSet = PAUSE_CURSOR_COLOR_SET_WHITE;
