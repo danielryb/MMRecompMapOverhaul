@@ -58,3 +58,17 @@ data_reference_syms_files = [ "Zelda64RecompSyms/mm.us.rev1.datasyms.toml", "Zel
 
 # Additional files to include in the mod.
 additional_files = [ ]
+
+[[manifest.config_options]]
+id = "map_overlay_mode"
+name = "Map Overlay Mode"
+description = """Determines the mode for dynamic overlays.
+"""
+type = "Enum"
+options = [
+    "PROGRESSIVE",
+    "REALTIME",
+    "COMBINED",
+    "STATIC"
+]
+default = "PROGRESSIVE"

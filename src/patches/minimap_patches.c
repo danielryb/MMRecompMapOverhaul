@@ -3,13 +3,43 @@
 #include "assets/objects/gameplay_keep/gameplay_keep.h"
 #include "code/gDPLoadTextureBlock_Runtime.inc.c"
 
+#ifdef DEBUG
+PlayState* _play;
+#endif
+
+void onRoomEnter(PlayState* play, s16 room) {
+    map_overhaul_reload_minimap_data(play, room);
+
+#ifdef DEBUG
+    _play = play;
+#endif
+}
+
 RECOMP_HOOK("Map_InitRoomData") void on_Map_InitRoomData(PlayState* play, s16 room) {
-    map_overhaul_reload_minimap_data(room);
+    onRoomEnter(play, room);
 }
 
 RECOMP_HOOK("Map_Init") void on_Map_Init(PlayState* play) {
-    map_overhaul_reload_minimap_data(play->roomCtx.curRoom.num);
+    onRoomEnter(play, play->roomCtx.curRoom.num);
+
+#ifdef DEBUG
+    s32 scene = ((void)0, gSaveContext.save.entrance) >> 9;
+    u32 index = scene + 3;
+    CycleSceneFlags* cycleFlags = &(gSaveContext.cycleSceneFlags[(index)]);
+
+    recomp_printf("cycleFlags[%d].switches: 0x%08x, 0x%08x\n", index, cycleFlags->switch0, cycleFlags->switch1);
+#endif
 }
+
+#ifdef DEBUG
+RECOMP_HOOK_RETURN("Map_InitRoomData") void after_Map_InitRoomData() {
+    map_overhaul_print_minimap_params(_play);
+}
+
+RECOMP_HOOK_RETURN("Map_Init") void after_Map_Init() {
+    map_overhaul_print_minimap_params(_play);
+}
+#endif
 
 extern MapDisp sMapDisp;
 
@@ -85,23 +115,16 @@ RECOMP_PATCH void MapDisp_Minimap_DrawActorIcon(PlayState* play, Actor* actor) {
     }
 
     // @mod Change position calculations to float for extra precision.
-    f32 mapPosX;
-    f32 mapPosY;
-
     scaleFrac = 1.0f / scale;
     if (!MapDisp_IsDataRotated(play)) {
-        mapPosX = ((actor->world.pos.x - mapDataRoom->centerX) * scaleFrac) + texOffsetX;
-        mapPosY = ((actor->world.pos.z - mapDataRoom->centerZ) * scaleFrac) + texOffsetY;
+        posX = ((actor->world.pos.x - mapDataRoom->centerX) * scaleFrac) + texOffsetX;
+        posY = ((actor->world.pos.z - mapDataRoom->centerZ) * scaleFrac) + texOffsetY;
     } else {
-        mapPosX = -((actor->world.pos.x - mapDataRoom->centerX) * scaleFrac) + texOffsetX;
-        mapPosY = -((actor->world.pos.z - mapDataRoom->centerZ) * scaleFrac) + texOffsetY;
+        posX = -((actor->world.pos.x - mapDataRoom->centerX) * scaleFrac) + texOffsetX;
+        posY = -((actor->world.pos.z - mapDataRoom->centerZ) * scaleFrac) + texOffsetY;
     }
-    posX = mapPosX + sMapDisp.minimapBaseX + sMapDisp.minimapCurX - sMapDisp.minimapBaseX;
-    posY = mapPosY + sMapDisp.minimapBaseY + sMapDisp.minimapCurY - sMapDisp.minimapBaseY;
-
-    // @mod Calculate cast to integer for calculations that depend on it.
-    s32 _posX = (s32)posX;
-    s32 _posY = (s32)posY;
+    posX += sMapDisp.minimapBaseX + sMapDisp.minimapCurX - sMapDisp.minimapBaseX;
+    posY += sMapDisp.minimapBaseY + sMapDisp.minimapCurY - sMapDisp.minimapBaseY;
 
     if ((posX > 0) && (posX < 0x3FF) && (posY > 0) && (posY < 0x3FF)) {
         OPEN_DISPS(play->state.gfxCtx);
@@ -128,10 +151,6 @@ RECOMP_PATCH void MapDisp_Minimap_DrawActorIcon(PlayState* play, Actor* actor) {
             MATRIX_FINALIZE_AND_LOAD(OVERLAY_DISP++, play->state.gfxCtx);
             gDPSetPrimColor(OVERLAY_DISP++, 0, 0, 200, 255, 0, play->interfaceCtx.minimapAlpha);
             gSPDisplayList(OVERLAY_DISP++, gCompassArrowDL);
-
-            // @mod Save player's minimap unit position.
-            map_overhaul_playerMinimapUnitPos.x = mapPosX / texWidth;
-            map_overhaul_playerMinimapUnitPos.z = mapPosY / texHeight;
         } else if ((actor->id == ACTOR_EN_BOX) && !Flags_GetTreasure(play, actor->params & 0x1F) &&
                    (MapDisp_GetStoreyY(player->actor.world.pos.y) == MapDisp_GetStoreyY(actor->world.pos.y))) {
             Gfx_SetupDL39_Overlay(play->state.gfxCtx);

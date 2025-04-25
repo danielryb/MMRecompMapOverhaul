@@ -7,6 +7,20 @@
 
 #define MAP_TRANSFORM_ID 0x19U
 
+#define MAP_SIZE_X 216
+#define MAP_SIZE_Y 128
+
+#define MAP_OFFSET_X 1
+#define MAP_OFFSET_Y -5
+
+#define ZOOM_TRANSLATE_SPEED 2.5
+#define ZOOM_SCALE_SPEED 0.035
+
+#define DEFAULT_ZOOM_SCALE 2.0
+
+#define MIN_ZOOM_SCALE 2.0
+#define MAX_ZOOM_SCALE 8.0
+
 Vtx gMapFaceVtx[] = {
     VTX(-8, 16, 0,  0 << 5,  0 << 5, 0, 0, 0, 0xFF),
     VTX( 8, 16, 0, 16 << 5,  0 << 5, 0, 0, 0, 0xFF),
@@ -30,41 +44,87 @@ Vtx gMapWarpVtx[] = {
 
 #include "overlay_data.c"
 
+#define gEXMatrixGroupDecomposedNormal(cmd, id, push, proj, edit) \
+    gEXMatrixGroupDecomposed(cmd, id, push, proj, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_INTERPOLATE, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_INTERPOLATE, G_EX_ORDER_LINEAR, edit)
+
+    #define gEXMatrixGroupDecomposedSkipAll(cmd, id, push, proj, edit) \
+    gEXMatrixGroupDecomposed(cmd, id, push, proj, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_INTERPOLATE, G_EX_ORDER_LINEAR, edit)
+
 #define DRAW_OVERLAY(pkt, name)                                                                                                         \
     do {                                                                                                                                \
+        gEXMatrixGroupDecomposedNormal(POLY_OPA_DISP++, MAP_TRANSFORM_ID, G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);                  \
         Matrix_Push();                                                                                                                  \
         Matrix_Translate(                                                                                                               \
             name ## _OVERLAY_X - SCREEN_CENTER_PX_X,                                                                                    \
             SCREEN_CENTER_PX_Y - name ## _OVERLAY_Y + offsetY,                                                                          \
             0.0f, MTXMODE_APPLY);                                                                                                       \
+        Matrix_Scale(                                                                                                                   \
+            name ## _OVERLAY_SCALE_X,                                                                                                   \
+            name ## _OVERLAY_SCALE_Y,                                                                                                   \
+            1.0f, MTXMODE_APPLY);                                                                                                       \
         MATRIX_FINALIZE_AND_LOAD(pkt, __gfxCtx);                                                                                        \
                                                                                                                                         \
         gSPVertex(pkt, &name ## OverlayVtx, 4, 0);                                                                                      \
                                                                                                                                         \
-        gDPLoadTextureBlock(pkt, name ## OverlayTex, G_IM_FMT_RGBA, G_IM_SIZ_32b, name ## _OVERLAY_WIDTH, name ## _OVERLAY_HEIGHT, 0,   \
-                            G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD,                 \
-                            G_TX_NOLOD);                                                                                                \
+        gDPLoadTextureTile(pkt, name ## OverlayTex, G_IM_FMT_RGBA, G_IM_SIZ_32b, name ## _OVERLAY_WIDTH, name ## _OVERLAY_HEIGHT,       \
+                            0, 0, name ## _OVERLAY_WIDTH - 1, name ## _OVERLAY_HEIGHT - 1, 0, G_TX_NOMIRROR | G_TX_WRAP,                \
+                            G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);                               \
                                                                                                                                         \
         gSP1Quadrangle(pkt, 0, 1, 2, 3, 0);                                                                                             \
                                                                                                                                         \
         Matrix_Pop();                                                                                                                   \
+        gEXPopMatrixGroup(POLY_OPA_DISP++, G_MTX_MODELVIEW);                                                                            \
     } while(false)
 
-RECOMP_IMPORT("*", void recomp_printf(char* temp, ...));
+#define CURRENT_SCENE sceneId
 
-#define ZOOM_TRANSLATE_SPEED 2.5f
-#define ZOOM_SCALE_SPEED 0.1f
+#define CYCLE_SCENE_SWITCH0(index) (gSaveContext.cycleSceneFlags[(index)].switch0)
+#define CHECK_CYCLE_SCENE_SWITCH0(index, flag) (CYCLE_SCENE_SWITCH0(index) & (flag))
 
-#define DEFAULT_ZOOM_SCALE 2.0
+#define CURRENT_SCENE_SWITCH0 (play->actorCtx.sceneFlags.switches[0])
+#define CHECK_CURRENT_SCENE_SWITCH0(index, flag) ((CURRENT_SCENE == index) && (CURRENT_SCENE_SWITCH0 & (flag)))
 
-#define MIN_ZOOM_SCALE 2.0
-#define MAX_ZOOM_SCALE 6.0
+#define CHECK_SCENE_SWITCH0(index, flag) (CHECK_CURRENT_SCENE_SWITCH0(index, flag) || CHECK_CYCLE_SCENE_SWITCH0(index, flag))
 
-#define MIN_ZOOM_TRANSLATION_X -108.0
-#define MAX_ZOOM_TRANSLATION_X 108.0
+#define CYCLE_SCENE_SWITCH1(index) (gSaveContext.cycleSceneFlags[(index)].switch1)
+#define CHECK_CYCLE_SCENE_SWITCH1(index, flag) (CYCLE_SCENE_SWITCH1(index) & (flag))
 
-#define MIN_ZOOM_TRANSLATION_Y -69.0
-#define MAX_ZOOM_TRANSLATION_Y 59.0
+#define CURRENT_SCENE_SWITCH1 (play->actorCtx.sceneFlags.switches[1])
+#define CHECK_CURRENT_SCENE_SWITCH1(index, flag) ((CURRENT_SCENE == index) && (CURRENT_SCENE_SWITCH1 & (flag)))
+
+#define CHECK_SCENE_SWITCH1(index, flag) (CHECK_CURRENT_SCENE_SWITCH1(index, flag) || CHECK_CYCLE_SCENE_SWITCH1(index, flag))
+
+#define SCENE_ID(entr_scene) entr_scene + 3
+
+#define CLEARED_WOODFALL_TEMPLE                     (CHECK_WEEKEVENTREG(WEEKEVENTREG_CLEARED_WOODFALL_TEMPLE))
+#define CLEARED_SNOWHEAD_TEMPLE                     (CHECK_WEEKEVENTREG(WEEKEVENTREG_CLEARED_SNOWHEAD_TEMPLE))
+#define CLEARED_GREAT_BAY_TEMPLE                    (CHECK_WEEKEVENTREG(WEEKEVENTREG_CLEARED_GREAT_BAY_TEMPLE))
+#define CLEARED_STONE_TOWER_TEMPLE                  (CHECK_WEEKEVENTREG(WEEKEVENTREG_CLEARED_STONE_TOWER_TEMPLE))
+#define WOODFALL_TEMPLE_EMERGED                     (CHECK_WEEKEVENTREG(WEEKEVENTREG_20_01))
+#define MILK_ROAD_BOULDER_DESTROYED                 ((CHECK_SCENE_SWITCH0(SCENE_ID(ENTR_SCENE_MILK_ROAD), 0x00000002)) || CURRENT_DAY >= 3)
+#define PATH_TO_GORON_VILLAGE_BOULDER_DESTROYED     (CHECK_SCENE_SWITCH0(SCENE_ID(ENTR_SCENE_PATH_TO_GORON_VILLAGE_WINTER), 0x00100000))
+#define PATH_TO_GORON_VILLAGE_ICE_CRYSTAL_MELTED    (CHECK_SCENE_SWITCH0(SCENE_ID(ENTR_SCENE_PATH_TO_GORON_VILLAGE_WINTER), 0x00000001))
+#define MOUNTAIN_SMITHY_HEARTH_MELTED               (CHECK_SCENE_SWITCH0(SCENE_ID(ENTR_SCENE_MOUNTAIN_SMITHY), 0x00000002))
+#define TERMINA_FIELD_ICICLE_DESTROYED              (CHECK_SCENE_SWITCH0(SCENE_ID(ENTR_SCENE_TERMINA_FIELD), 0x00000002))
+#define SEAHORSE_REUNITED                           (CHECK_WEEKEVENTREG(WEEKEVENTREG_84_10))
+#define IKANA_GRAVEYARD_BRIDGE_DESTROYED            (CHECK_SCENE_SWITCH0(SCENE_ID(ENTR_SCENE_IKANA_GRAVEYARD), 0x00000400))
+#define CAPTAIN_KEETA_DEFEATED                      (CHECK_WEEKEVENTREG(WEEKEVENTREG_23_04)) // (CHECK_SCENE_SWITCH0(SCENE_ID(ENTR_SCENE_IKANA_GRAVEYARD), 0x00000800))
+#define IKANA_CANYON_RIVER_FLOWING                  (CHECK_WEEKEVENTREG(WEEKEVENTREG_14_04))
+#define IKANA_CASTLE_ROOF_DESTROYED                 (CHECK_SCENE_SWITCH1(SCENE_ID(ENTR_SCENE_IKANA_CASTLE), 0x00000020))
+#define ROAD_TO_IKANA_HOOKSHOT_TREE_APPEARED        (CHECK_SCENE_SWITCH0(SCENE_ID(ENTR_SCENE_ROAD_TO_IKANA), 0x00000080))
+#define SAKON_HIDEOUT_OPEN                          (CHECK_WEEKEVENTREG(WEEKEVENTREG_51_10))
+#define SHIRO_HEALED                                (CHECK_WEEKEVENTREG(WEEKEVENTREG_41_40))
+#define CLOCK_TOWN_VIEWING_TOWER_NEAR_COMPLETION    (CURRENT_DAY >= 3)
+
+#define ZORA_MASK_ACQUIRED                          (INV_CONTENT(ITEM_MASK_ZORA) == ITEM_MASK_ZORA)
+#define COUPLE_MASK_ACQUIRED                        (INV_CONTENT(ITEM_MASK_COUPLE) == ITEM_MASK_COUPLE)
+#define STONE_MASK_ACQUIRED                         (INV_CONTENT(ITEM_MASK_STONE) == ITEM_MASK_STONE)
+#define EPONA_SONG_ACQUIRED                         (CHECK_QUEST_ITEM(QUEST_SONG_EPONA))
+#define GILDED_SWORD_ACQUIRED                       ((CUR_FORM_EQUIP(EQUIP_SLOT_B) == ITEM_SWORD_GILDED) || (STOLEN_ITEM_1 == ITEM_SWORD_GILDED) || (STOLEN_ITEM_2 == ITEM_SWORD_GILDED))
+#define ODOLWA_REMAINS_ACQUIRED                     (CHECK_QUEST_ITEM(QUEST_REMAINS_ODOLWA))
+#define GOHT_REMAINS_ACQUIRED                       (CHECK_QUEST_ITEM(QUEST_REMAINS_GOHT))
+#define GYORG_REMAINS_ACQUIRED                      (CHECK_QUEST_ITEM(QUEST_REMAINS_GYORG))
+#define TWINMOLD_REMAINS_ACQUIRED                   (CHECK_QUEST_ITEM(QUEST_REMAINS_TWINMOLD))
 
 static Vec2f DEFAULT_ZOOM_OFFSET = { 0.0, -5.0 };
 
@@ -96,6 +156,8 @@ f32 transition_target_zoom_scale;
 u16 transition_target_state;
 u16 transition_target_mainState;
 
+Vec2f map_overhaul_playerWorldMapPos;
+
 RECOMP_PATCH void KaleidoScope_UpdateWorldMapCursor(PlayState* play) {
     static u16 sStickAdjTimer = 0; // unused timer that counts up every frame. Resets on reading a stickAdj.
     PauseContext* pauseCtx = &play->pauseCtx;
@@ -104,24 +166,11 @@ RECOMP_PATCH void KaleidoScope_UpdateWorldMapCursor(PlayState* play) {
 
     static u16 transition_timer = 0; // @mod
 
+    // @mod Add custom world map states.
     if ((pauseCtx->state == PAUSE_STATE_MAIN) && (pauseCtx->pageIndex == PAUSE_MAP)) {
         switch (world_map_state) {
             case WORLD_MAP_STATE_ZOOM:
                 ;
-                s32 stickAdjX = input->rel.stick_x;
-                s32 stickAdjY = input->rel.stick_y;
-
-                if (stickAdjX != 0 || stickAdjY != 0) {
-                    // recomp_printf("X: %d, Y: %d, Magnitude %f\n", stickAdjX, stickAdjY, stickAdjMagnitude);
-                    zoom_offset.x -= (stickAdjX / 60.0f) * (ZOOM_TRANSLATE_SPEED / zoom_scale);
-                    zoom_offset.x = CLAMP(zoom_offset.x, MIN_ZOOM_TRANSLATION_X, MAX_ZOOM_TRANSLATION_X);
-
-                    zoom_offset.z += (stickAdjY / 60.0f) * (ZOOM_TRANSLATE_SPEED / zoom_scale);
-                    zoom_offset.z = CLAMP(zoom_offset.z, MIN_ZOOM_TRANSLATION_Y, MAX_ZOOM_TRANSLATION_Y);
-                } else {
-                    sStickAdjTimer++;
-                }
-
                 s32 rStickAdjY;
                 if (recomp_get_analog_cam_enabled()) {
                     float cameraX, cameraY;
@@ -134,8 +183,18 @@ RECOMP_PATCH void KaleidoScope_UpdateWorldMapCursor(PlayState* play) {
                 }
 
                 if (rStickAdjY != 0) {
-                    zoom_scale -= (rStickAdjY / 60.0f) * (ZOOM_SCALE_SPEED);
+                    zoom_scale -= (rStickAdjY / 60.0f) * ZOOM_SCALE_SPEED * zoom_scale;
                     zoom_scale = CLAMP(zoom_scale, MIN_ZOOM_SCALE, MAX_ZOOM_SCALE);
+                }
+
+                s32 stickAdjX = input->rel.stick_x;
+                s32 stickAdjY = input->rel.stick_y;
+
+                if (stickAdjX != 0 || stickAdjY != 0) {
+                    zoom_offset.x -= (stickAdjX / 60.0f) * (ZOOM_TRANSLATE_SPEED / zoom_scale);
+                    zoom_offset.z += (stickAdjY / 60.0f) * (ZOOM_TRANSLATE_SPEED / zoom_scale);
+                } else {
+                    sStickAdjTimer++;
                 }
 
                 if (CHECK_BTN_ANY(input->press.button, BTN_B)) {
@@ -151,6 +210,14 @@ RECOMP_PATCH void KaleidoScope_UpdateWorldMapCursor(PlayState* play) {
                     Audio_PlaySfx(NA_SE_SY_CAMERA_ZOOM_DOWN_2);
                 }
 
+                // @mod Limit map offset to frame.
+                f32 min_zoom_offset_x = (-(MAP_SIZE_X / 2) + MAP_OFFSET_X) * (1 - (1 / zoom_scale));
+                f32 max_zoom_offset_x = ((MAP_SIZE_X / 2) + MAP_OFFSET_X) * (1 - (1 / zoom_scale));
+                zoom_offset.x = CLAMP(zoom_offset.x, min_zoom_offset_x, max_zoom_offset_x);
+
+                f32 min_zoom_offset_y = (-(MAP_SIZE_Y / 2) + MAP_OFFSET_Y) * (1 - (1 / zoom_scale));
+                f32 max_zoom_offset_y = ((MAP_SIZE_Y / 2) + MAP_OFFSET_Y) * (1 - (1 / zoom_scale));
+                zoom_offset.z = CLAMP(zoom_offset.z, min_zoom_offset_y, max_zoom_offset_y);
                 break;
 
             case WORLD_MAP_STATE_TRANSITION:
@@ -371,95 +438,96 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
     Matrix_Translate(zoom_offset.x, -zoom_offset.z, 0.0f, MTXMODE_APPLY);
     MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, play->state.gfxCtx);
 
-    // Draw the world map image
-    if ((pauseCtx->pageIndex == PAUSE_MAP) && (pauseCtx->state == PAUSE_STATE_MAIN) &&
-        ((pauseCtx->mainState == PAUSE_MAIN_STATE_IDLE) || (pauseCtx->mainState == PAUSE_MAIN_STATE_EQUIP_ITEM)) &&
-        YREG(6) && (pauseCtx->state != PAUSE_STATE_SAVEPROMPT) && !IS_PAUSE_STATE_GAMEOVER(pauseCtx)) {
-        // Draw the world map image flat
-        // Because it is flat, the texture is loaded by filling it in 8 rows at a time.
-        // 8 is chosen because it is smaller than `TMEM_SIZE / 2 / textureWidth` and divides the texture's height.
-        // Each loaded chunk must have `size <= TMEM_SIZE / 2`
-        // because the texture is color-indexed, so the TLUT uses the other half of TMEM.
+    // // Draw the world map image
+    // if ((pauseCtx->pageIndex == PAUSE_MAP) && (pauseCtx->state == PAUSE_STATE_MAIN) &&
+    //     ((pauseCtx->mainState == PAUSE_MAIN_STATE_IDLE) || (pauseCtx->mainState == PAUSE_MAIN_STATE_EQUIP_ITEM)) &&
+    //     YREG(6) && (pauseCtx->state != PAUSE_STATE_SAVEPROMPT) && !IS_PAUSE_STATE_GAMEOVER(pauseCtx)) {
+    //     // Draw the world map image flat
+    //     // Because it is flat, the texture is loaded by filling it in 8 rows at a time.
+    //     // 8 is chosen because it is smaller than `TMEM_SIZE / 2 / textureWidth` and divides the texture's height.
+    //     // Each loaded chunk must have `size <= TMEM_SIZE / 2`
+    //     // because the texture is color-indexed, so the TLUT uses the other half of TMEM.
 
-        Gfx_SetupDL39_Opa(play->state.gfxCtx);
+    //     Gfx_SetupDL39_Opa(play->state.gfxCtx);
 
-        gDPSetTextureFilter(POLY_OPA_DISP++, G_TF_POINT);
-        gDPLoadTLUT_pal256(POLY_OPA_DISP++, gWorldMapImageTLUT);
-        gDPSetTextureLUT(POLY_OPA_DISP++, G_TT_RGBA16);
+    //     gDPSetTextureFilter(POLY_OPA_DISP++, G_TF_POINT);
+    //     gDPLoadTLUT_pal256(POLY_OPA_DISP++, gWorldMapImageTLUT);
+    //     gDPSetTextureLUT(POLY_OPA_DISP++, G_TT_RGBA16);
 
-        gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 255, 255, 255, pauseCtx->alpha);
+    //     gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 255, 255, 255, pauseCtx->alpha);
 
-        // Process the 128 rows of pixels for gWorldMapImageTex, 8 rows at a time over 16 iterations
-        // Loop over yPos (t), textureIndex (j)
-        for (t = 62, j = 0; j < 16; j++, t += 8) {
-            gDPLoadTextureBlock(POLY_OPA_DISP++, (u8*)gWorldMapImageTex + j * (WORLD_MAP_IMAGE_WIDTH * 8), G_IM_FMT_CI,
-                                G_IM_SIZ_8b, WORLD_MAP_IMAGE_WIDTH, 8, 0, G_TX_NOMIRROR | G_TX_WRAP,
-                                G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    //     // Process the 128 rows of pixels for gWorldMapImageTex, 8 rows at a time over 16 iterations
+    //     // Loop over yPos (t), textureIndex (j)
+    //     for (t = 62, j = 0; j < 16; j++, t += 8) {
+    //         gDPLoadTextureBlock(POLY_OPA_DISP++, (u8*)gWorldMapImageTex + j * (WORLD_MAP_IMAGE_WIDTH * 8), G_IM_FMT_CI,
+    //                             G_IM_SIZ_8b, WORLD_MAP_IMAGE_WIDTH, 8, 0, G_TX_NOMIRROR | G_TX_WRAP,
+    //                             G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
 
-            rectLeft = 51 << 2;
-            rectRight = rectLeft + (WORLD_MAP_IMAGE_WIDTH << 2);
-            gSPTextureRectangle(POLY_OPA_DISP++, rectLeft, t << 2, rectRight, (t << 2) + (8 << 2), G_TX_RENDERTILE, 0,
-                                0, 1 << 10, 1 << 10);
-        }
+    //         rectLeft = 51 << 2;
+    //         rectRight = rectLeft + (WORLD_MAP_IMAGE_WIDTH << 2);
+    //         gSPTextureRectangle(POLY_OPA_DISP++, rectLeft, t << 2, rectRight, (t << 2) + (8 << 2), G_TX_RENDERTILE, 0,
+    //                             0, 1 << 10, 1 << 10);
+    //     }
 
-        Gfx_SetupDL42_Opa(play->state.gfxCtx);
+    //     Gfx_SetupDL42_Opa(play->state.gfxCtx);
 
-    } else {
-        // Draw the world map angled
-        // Because it is at an angle, vertices are used to place it.
-        // The structure of the loops here is to satisfy the constraints of both TMEM and the size of the vertex cache.
-        // - Each loop iteration loads 9 rows, because 9 is the largest number smaller than
-        //   `TMEM_SIZE / 2 / textureWidth`.
-        // - Each loop is at most 8 iterations long because each row uses 4 vertices and the vertex cache has size
-        //   `32 = 8 * 4`.
-        // .
-        // Hence there is one loop of length 8, one of length 6, and then the remaining `128 - (8 + 6) * 9 = 2` rows are
-        // drawn at the end.
+    // } else {
+    //     // Draw the world map angled
+    //     // Because it is at an angle, vertices are used to place it.
+    //     // The structure of the loops here is to satisfy the constraints of both TMEM and the size of the vertex cache.
+    //     // - Each loop iteration loads 9 rows, because 9 is the largest number smaller than
+    //     //   `TMEM_SIZE / 2 / textureWidth`.
+    //     // - Each loop is at most 8 iterations long because each row uses 4 vertices and the vertex cache has size
+    //     //   `32 = 8 * 4`.
+    //     // .
+    //     // Hence there is one loop of length 8, one of length 6, and then the remaining `128 - (8 + 6) * 9 = 2` rows are
+    //     // drawn at the end.
 
-        gDPPipeSync(POLY_OPA_DISP++);
-        gDPSetTextureFilter(POLY_OPA_DISP++, G_TF_POINT);
-        gDPLoadTLUT_pal256(POLY_OPA_DISP++, gWorldMapImageTLUT);
-        gDPSetTextureLUT(POLY_OPA_DISP++, G_TT_RGBA16);
+    //     gDPPipeSync(POLY_OPA_DISP++);
+    //     gDPSetTextureFilter(POLY_OPA_DISP++, G_TF_POINT);
+    //     gDPLoadTLUT_pal256(POLY_OPA_DISP++, gWorldMapImageTLUT);
+    //     gDPSetTextureLUT(POLY_OPA_DISP++, G_TT_RGBA16);
 
-        gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 255, 255, 255, pauseCtx->alpha);
+    //     gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 255, 255, 255, pauseCtx->alpha);
 
-        // Set the vertices for the first 8 quads attached to the world map texture.
-        gSPVertex(POLY_OPA_DISP++, &pauseCtx->mapPageVtx[QUAD_MAP_PAGE_WORLD_IMAGE_FIRST * 4], 8 * 4, 0);
+    //     // Set the vertices for the first 8 quads attached to the world map texture.
+    //     gSPVertex(POLY_OPA_DISP++, &pauseCtx->mapPageVtx[QUAD_MAP_PAGE_WORLD_IMAGE_FIRST * 4], 8 * 4, 0);
 
-        // Process the first 72 rows of pixels for gWorldMapImageTex, 9 rows at a time over 8 iterations
-        // Loop over quadIndex of this loop (i), quadIndex of the entire texture (k), vtxIndex (j)
-        for (i = 0, k = 0, j = 0; i < 8; i++, k++, j += 4) {
-            gDPLoadTextureBlock(
-                POLY_OPA_DISP++, (u8*)gWorldMapImageTex + k * (WORLD_MAP_IMAGE_WIDTH * WORLD_MAP_IMAGE_FRAG_HEIGHT),
-                G_IM_FMT_CI, G_IM_SIZ_8b, WORLD_MAP_IMAGE_WIDTH, WORLD_MAP_IMAGE_FRAG_HEIGHT, 0,
-                G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    //     // Process the first 72 rows of pixels for gWorldMapImageTex, 9 rows at a time over 8 iterations
+    //     // Loop over quadIndex of this loop (i), quadIndex of the entire texture (k), vtxIndex (j)
+    //     for (i = 0, k = 0, j = 0; i < 8; i++, k++, j += 4) {
+    //         gDPLoadTextureBlock(
+    //             POLY_OPA_DISP++, (u8*)gWorldMapImageTex + k * (WORLD_MAP_IMAGE_WIDTH * WORLD_MAP_IMAGE_FRAG_HEIGHT),
+    //             G_IM_FMT_CI, G_IM_SIZ_8b, WORLD_MAP_IMAGE_WIDTH, WORLD_MAP_IMAGE_FRAG_HEIGHT, 0,
+    //             G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
 
-            gSP1Quadrangle(POLY_OPA_DISP++, j, j + 2, j + 3, j + 1, 0);
-        }
+    //         gSP1Quadrangle(POLY_OPA_DISP++, j, j + 2, j + 3, j + 1, 0);
+    //     }
 
-        // Set the vertices for the last 7 quads attached to the world map texture:
-        // 6 quads with a height of 9, 1 quad with a height of 2
-        gSPVertex(POLY_OPA_DISP++, &pauseCtx->mapPageVtx[(QUAD_MAP_PAGE_WORLD_IMAGE_FIRST + 8) * 4], (6 + 1) * 4, 0);
+    //     // Set the vertices for the last 7 quads attached to the world map texture:
+    //     // 6 quads with a height of 9, 1 quad with a height of 2
+    //     gSPVertex(POLY_OPA_DISP++, &pauseCtx->mapPageVtx[(QUAD_MAP_PAGE_WORLD_IMAGE_FIRST + 8) * 4], (6 + 1) * 4, 0);
 
-        // Process the next 54 rows of pixels for gWorldMapImageTex, 9 rows at a time over 6 iterations
-        // Loop over quadIndex of this loop (i), quadIndex of the entire texture (k), vtxIndex (j)
-        for (i = 0, j = 0; i < 6; i++, k++, j += 4) {
-            gDPLoadTextureBlock(
-                POLY_OPA_DISP++, (u8*)gWorldMapImageTex + k * (WORLD_MAP_IMAGE_WIDTH * WORLD_MAP_IMAGE_FRAG_HEIGHT),
-                G_IM_FMT_CI, G_IM_SIZ_8b, WORLD_MAP_IMAGE_WIDTH, WORLD_MAP_IMAGE_FRAG_HEIGHT, 0,
-                G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    //     // Process the next 54 rows of pixels for gWorldMapImageTex, 9 rows at a time over 6 iterations
+    //     // Loop over quadIndex of this loop (i), quadIndex of the entire texture (k), vtxIndex (j)
+    //     for (i = 0, j = 0; i < 6; i++, k++, j += 4) {
+    //         gDPLoadTextureBlock(
+    //             POLY_OPA_DISP++, (u8*)gWorldMapImageTex + k * (WORLD_MAP_IMAGE_WIDTH * WORLD_MAP_IMAGE_FRAG_HEIGHT),
+    //             G_IM_FMT_CI, G_IM_SIZ_8b, WORLD_MAP_IMAGE_WIDTH, WORLD_MAP_IMAGE_FRAG_HEIGHT, 0,
+    //             G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
 
-            gSP1Quadrangle(POLY_OPA_DISP++, j, j + 2, j + 3, j + 1, 0);
-        }
+    //         gSP1Quadrangle(POLY_OPA_DISP++, j, j + 2, j + 3, j + 1, 0);
+    //     }
 
-        // Process the last 2 rows of pixels for gWorldMapImageTex
-        gDPLoadTextureBlock(
-            POLY_OPA_DISP++, (u8*)gWorldMapImageTex + k * (WORLD_MAP_IMAGE_WIDTH * WORLD_MAP_IMAGE_FRAG_HEIGHT),
-            G_IM_FMT_CI, G_IM_SIZ_8b, WORLD_MAP_IMAGE_WIDTH, WORLD_MAP_IMAGE_HEIGHT % WORLD_MAP_IMAGE_FRAG_HEIGHT, 0,
-            G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    //     // Process the last 2 rows of pixels for gWorldMapImageTex
+    //     gDPLoadTextureBlock(
+    //         POLY_OPA_DISP++, (u8*)gWorldMapImageTex + k * (WORLD_MAP_IMAGE_WIDTH * WORLD_MAP_IMAGE_FRAG_HEIGHT),
+    //         G_IM_FMT_CI, G_IM_SIZ_8b, WORLD_MAP_IMAGE_WIDTH, WORLD_MAP_IMAGE_HEIGHT % WORLD_MAP_IMAGE_FRAG_HEIGHT, 0,
+    //         G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
 
-        gSP1Quadrangle(POLY_OPA_DISP++, j, j + 2, j + 3, j + 1, 0);
-    }
+    //     gSP1Quadrangle(POLY_OPA_DISP++, j, j + 2, j + 3, j + 1, 0);
+    // }
+    k = 14;
 
     Vtx* print_vtx = &pauseCtx->mapPageVtx[(QUAD_MAP_PAGE_WORLD_IMAGE_FIRST + 0) * 4];
     // recomp_printf("pauseCtx->mainState: %d, X: %d, Y: %d, Z: %d\n", pauseCtx->mainState, print_vtx->v.ob[0], print_vtx->v.ob[1], print_vtx->v.ob[2]);
@@ -472,7 +540,7 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
 
     gDPSetCombineMode(POLY_OPA_DISP++, G_CC_MODULATEIA_PRIM, G_CC_MODULATEIA_PRIM);
 
-    gDPSetOtherMode(POLY_OPA_DISP++, G_AD_PATTERN | G_CD_MAGICSQ | G_CK_NONE | G_TC_FILT | G_TF_POINT | G_TT_NONE | G_TL_TILE |
+    gDPSetOtherMode(POLY_OPA_DISP++, G_AD_PATTERN | G_CD_MAGICSQ | G_CK_NONE | G_TC_FILT | G_TF_BILERP | G_TT_NONE | G_TL_TILE |
                         G_TD_CLAMP | G_TP_PERSP | G_CYC_1CYCLE | G_PM_NPRIMITIVE,
                     G_AC_THRESHOLD | G_ZS_PIXEL | G_RM_XLU_SURF | G_RM_XLU_SURF2);
 
@@ -480,9 +548,269 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
 
     gSPClearGeometryMode(POLY_OPA_DISP++, G_CULL_BACK);
 
-    // @mod Draw map overlays.
-    DRAW_OVERLAY(POLY_OPA_DISP++, GreatBayCleared);
+    DRAW_OVERLAY(POLY_OPA_DISP++, WorldMap);
 
+    gDPSetTextureFilter(POLY_OPA_DISP++, G_TF_POINT);
+
+    // @mod Draw map overlays.
+    s16 sceneId = Play_GetOriginalSceneId(play->sceneId);
+
+    u8 drawClockTownViewingTowerThirdDay;
+
+    u8 drawRomaniRanchBoulderDestroyed;
+
+    u8 drawSwampCleared;
+    u8 drawWoodfallEmergedCursed;
+
+    u8 drawTerminaFieldIcicleDestroyed;
+    u8 drawSnowheadCleared;
+    u8 drawGoronRacetrackBoulderWinter;
+    u8 drawGoronRacetrackBoulderSpring;
+    u8 drawMountainSmithySmoke;
+    u8 drawMountainHotspringIceCrystal;
+
+    u8 drawGreatBayCleared;
+    u8 drawMikauGrave;
+    u8 drawSeahorses;
+
+    u8 drawIkanaCleared;
+    u8 drawIkanaGraveyardBridge;
+    u8 drawIkanaGraveyardFlameAndKeetaGone;
+    u8 drawIkanaCanyonRiver;
+    u8 drawIkanaCastleRoofHole;
+    u8 drawRoadToIkanaHookshotTree;
+    u8 drawSakonHideoutOpen;
+    u8 drawShiro;
+
+    u8 overlayMode = CFG_MAP_OVERLAY_MODE;
+    switch (overlayMode) {
+        case MAP_OVERLAY_MODE_REALTIME:
+        case MAP_OVERLAY_MODE_COMBINED:
+            drawClockTownViewingTowerThirdDay = CLOCK_TOWN_VIEWING_TOWER_NEAR_COMPLETION;
+
+            drawRomaniRanchBoulderDestroyed = MILK_ROAD_BOULDER_DESTROYED;
+
+            drawTerminaFieldIcicleDestroyed = TERMINA_FIELD_ICICLE_DESTROYED;
+
+            drawSwampCleared = CLEARED_WOODFALL_TEMPLE;
+            if (drawSwampCleared) {
+                drawWoodfallEmergedCursed = false;
+            } else {
+                drawWoodfallEmergedCursed = WOODFALL_TEMPLE_EMERGED;
+            }
+
+            drawSnowheadCleared = CLEARED_SNOWHEAD_TEMPLE;
+            if (drawSnowheadCleared) {
+                drawGoronRacetrackBoulderWinter = false;
+                drawGoronRacetrackBoulderSpring = PATH_TO_GORON_VILLAGE_BOULDER_DESTROYED;
+                drawMountainSmithySmoke = false;
+                drawMountainHotspringIceCrystal = false;
+            } else {
+                drawGoronRacetrackBoulderWinter = PATH_TO_GORON_VILLAGE_BOULDER_DESTROYED;
+                drawGoronRacetrackBoulderSpring = false;
+                drawMountainSmithySmoke = MOUNTAIN_SMITHY_HEARTH_MELTED;
+                drawMountainHotspringIceCrystal = !PATH_TO_GORON_VILLAGE_ICE_CRYSTAL_MELTED;
+            }
+
+            drawGreatBayCleared = CLEARED_GREAT_BAY_TEMPLE;
+            drawMikauGrave = ZORA_MASK_ACQUIRED;
+            drawSeahorses = SEAHORSE_REUNITED;
+
+            drawIkanaCleared = CLEARED_STONE_TOWER_TEMPLE;
+            drawIkanaGraveyardBridge = IKANA_GRAVEYARD_BRIDGE_DESTROYED;
+            drawIkanaGraveyardFlameAndKeetaGone = CAPTAIN_KEETA_DEFEATED;
+            drawIkanaCanyonRiver = IKANA_CANYON_RIVER_FLOWING;
+            drawIkanaCastleRoofHole = IKANA_CASTLE_ROOF_DESTROYED;
+            drawRoadToIkanaHookshotTree = ROAD_TO_IKANA_HOOKSHOT_TREE_APPEARED;
+            drawSakonHideoutOpen = SAKON_HIDEOUT_OPEN;
+            drawShiro = SHIRO_HEALED;
+
+            if (overlayMode == MAP_OVERLAY_MODE_REALTIME) {
+                break;
+            }
+            FALLTHROUGH;
+
+        case MAP_OVERLAY_MODE_STATIC:
+        case MAP_OVERLAY_MODE_PROGRESSIVE:
+            if (overlayMode != MAP_OVERLAY_MODE_COMBINED) {
+                drawClockTownViewingTowerThirdDay = false;
+
+                drawTerminaFieldIcicleDestroyed = false;
+
+                drawRomaniRanchBoulderDestroyed = false;
+
+                drawSwampCleared = false;
+                drawWoodfallEmergedCursed = false;
+
+                drawSnowheadCleared = false;
+                drawGoronRacetrackBoulderWinter = true;
+                drawGoronRacetrackBoulderSpring = false;
+                drawMountainHotspringIceCrystal = true;
+                drawMountainSmithySmoke = false;
+
+                drawGreatBayCleared = false;
+                drawMikauGrave = false;
+                drawSeahorses = false;
+
+                drawIkanaCleared = false;
+                drawIkanaGraveyardBridge = false;
+                drawIkanaGraveyardFlameAndKeetaGone = false;
+                drawIkanaCanyonRiver = false;
+                drawIkanaCastleRoofHole = false;
+                drawRoadToIkanaHookshotTree = false;
+                drawSakonHideoutOpen = false;
+                drawShiro = false;
+
+                if (overlayMode == MAP_OVERLAY_MODE_STATIC) {
+                    break;
+                }
+            }
+
+            if (EPONA_SONG_ACQUIRED) {
+                drawRomaniRanchBoulderDestroyed = true;
+            }
+
+            u8 counter = 0;
+
+            if (ODOLWA_REMAINS_ACQUIRED) {
+                counter++;
+
+                drawSwampCleared = true;
+            }
+
+            if (GOHT_REMAINS_ACQUIRED) {
+                counter++;
+
+                drawTerminaFieldIcicleDestroyed = true;
+                drawSnowheadCleared = true;
+                drawGoronRacetrackBoulderWinter = false;
+                drawGoronRacetrackBoulderSpring = true;
+                drawMountainHotspringIceCrystal = false;
+                drawMountainSmithySmoke = false;
+            }
+
+            if (GILDED_SWORD_ACQUIRED) {
+                drawGoronRacetrackBoulderWinter = false;
+                drawGoronRacetrackBoulderSpring = false;
+            }
+
+            if (GYORG_REMAINS_ACQUIRED) {
+                counter++;
+
+                drawGreatBayCleared = true;
+                drawMikauGrave = true;
+                drawSeahorses = true;
+            }
+
+            if (TWINMOLD_REMAINS_ACQUIRED) {
+                counter++;
+
+                drawIkanaCleared = true;
+                drawIkanaGraveyardBridge = true;
+                drawIkanaGraveyardFlameAndKeetaGone = true;
+                drawIkanaCanyonRiver = true;
+                drawIkanaCastleRoofHole = true;
+                drawRoadToIkanaHookshotTree = true;
+            }
+
+            if (COUPLE_MASK_ACQUIRED) {
+                drawSakonHideoutOpen = true;
+            }
+
+            if (STONE_MASK_ACQUIRED) {
+                drawShiro = true;
+            }
+
+            if (counter == 4) {
+                drawClockTownViewingTowerThirdDay = true;
+            }
+
+            break;
+    }
+
+    if (drawClockTownViewingTowerThirdDay) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, Scaffolding);
+    }
+
+    if (drawTerminaFieldIcicleDestroyed) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, IceTerminaGate);
+    }
+
+    if (drawRomaniRanchBoulderDestroyed) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, RanchBoulder);
+    }
+
+    if (drawSwampCleared) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, SwampMain);
+    }
+
+    if (drawWoodfallEmergedCursed) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, WFTempleCursed);
+    }
+
+    if (drawSnowheadCleared) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, SnowheadMain);
+    }
+
+    if (drawGoronRacetrackBoulderWinter) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, TrackBldrIcy);
+    }
+
+    if (drawGoronRacetrackBoulderSpring) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, TrackBldrThawed);
+    }
+
+    if (drawMountainSmithySmoke) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, ChimneySmith);
+    }
+
+    if (drawMountainHotspringIceCrystal) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, PondCrystal);
+    }
+
+    if (drawGreatBayCleared) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, GBayMain);
+    }
+
+    if (drawMikauGrave) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, MikauGrave);
+    }
+
+    if (drawSeahorses) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, Seahorses);
+    }
+
+    if (drawIkanaCleared) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, IkanaMain);
+    }
+
+    if (drawIkanaGraveyardFlameAndKeetaGone) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, KeetaArea);
+    }
+
+    if (drawIkanaGraveyardBridge) {
+
+    }
+
+    if (drawIkanaCanyonRiver) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, IkanaRiver);
+    }
+
+    if (drawIkanaCastleRoofHole) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, CastleRoof);
+    }
+
+    if (drawRoadToIkanaHookshotTree) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, HookshotTree);
+    }
+
+    if (drawSakonHideoutOpen) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, SakonDoor);
+    }
+
+    if (drawShiro) {
+        DRAW_OVERLAY(POLY_OPA_DISP++, Shiro);
+    }
 
     MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, play->state.gfxCtx);
 
@@ -691,14 +1019,7 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
         }
 
         if (n != REGION_MAX) {
-            // @mod Calculate accurate player position.
-            Vec2f playerPos;
-            bool res = map_overhaul_minimap_unit_to_world_map_position(&map_overhaul_playerMinimapUnitPos, &playerPos);
-            if (!res) {
-                // Draw Player's face at the current region
-                // @mod replace with custom function for extra float precision.
-                map_overhaul_get_face_position(n, &playerPos);
-            }
+            Vec2f playerPos = map_overhaul_playerWorldMapPos;
 
             KaleidoScope_SetView(pauseCtx, pauseCtx->eye.x, pauseCtx->eye.y, pauseCtx->eye.z);
             Gfx_SetupDL39_Opa(play->state.gfxCtx);
@@ -716,6 +1037,7 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
             gSPClearGeometryMode(POLY_OPA_DISP++, G_CULL_BACK);
 
             // @mod Draw texture using transformation matrix and a quad for extra precision.
+            gEXMatrixGroupDecomposedNormal(POLY_OPA_DISP++, MAP_TRANSFORM_ID, G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
             Matrix_Push();
 
             gSPMatrix(POLY_OPA_DISP++, &gIdentityMtx, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
@@ -729,6 +1051,7 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
             gSP1Quadrangle(POLY_OPA_DISP++, 0, 1, 2, 3, 0);
 
             Matrix_Pop();
+            gEXPopMatrixGroup(POLY_OPA_DISP++, G_MTX_MODELVIEW);
         }
 
     }

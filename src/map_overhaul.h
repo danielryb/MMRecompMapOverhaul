@@ -24,16 +24,35 @@ extern s16 sVtxPageMapWorldQuadsY[VTX_PAGE_MAP_WORLD_QUADS];
 extern f32 new_sVtxPageMapWorldQuadsX[];
 extern f32 new_sVtxPageMapWorldQuadsY[];
 
-extern Vec2f map_overhaul_playerMinimapUnitPos;
+extern Vec2f map_overhaul_playerWorldMapPos;
 
-void map_overhaul_reload_minimap_data(s8 room);
+void map_overhaul_reload_minimap_data(PlayState *play /*TMP*/, s8 room);
 
 void map_overhaul_get_face_position(size_t i, Vec2f* pos);
 void map_overhul_update_cursor_position(PlayState *play);
 
 bool map_overhaul_minimap_unit_to_world_map_position(Vec2f* minimapPos, Vec2f* dest);
+bool map_overhaul_calculate_world_map_position(PlayState* play, Vec3f* pos, Vec2f* dest);
 
 RECOMP_IMPORT("*", s32 recomp_get_analog_cam_enabled());
 RECOMP_IMPORT("*", void recomp_get_camera_inputs(float* x, float* y));
+
+RECOMP_IMPORT("*", double recomp_get_config_double(const char* key));
+RECOMP_IMPORT("*", u32 recomp_get_config_u32(const char* key));
+
+typedef enum {
+    MAP_OVERLAY_MODE_PROGRESSIVE,
+    MAP_OVERLAY_MODE_REALTIME,
+    MAP_OVERLAY_MODE_COMBINED,
+    MAP_OVERLAY_MODE_STATIC,
+} MapOverlayMode;
+
+#define CFG_MAP_OVERLAY_MODE ((MapOverlayMode)recomp_get_config_u32("map_overlay_mode"))
+
+#ifdef DEBUG
+RECOMP_IMPORT("*", void recomp_printf(char* temp, ...));
+
+void map_overhaul_print_minimap_params(PlayState* play);
+#endif
 
 #endif /* __MAP_OVERHAUL__ */

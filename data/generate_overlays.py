@@ -9,7 +9,7 @@ thumbnail_out_dir = "data/generated/textures/thumbnails"
 tab_size = 4
 thumbnail_size = (32, 32)
 
-def resize_canvas(img : ImageFile.ImageFile, new_size : tuple[int]) -> Image.Image:
+def resize_canvas(img : ImageFile.ImageFile, new_size : tuple[int, int]) -> Image.Image:
     new_image = Image.new("RGBA", (new_size[0], new_size[1]), (255, 255, 255, 0))
 
     offset = (0, 0)
@@ -17,23 +17,24 @@ def resize_canvas(img : ImageFile.ImageFile, new_size : tuple[int]) -> Image.Ima
 
     return new_image
 
-def generate_overlay_images(file : str, game_size : tuple[int, int]) -> tuple[tuple[str, ImageFile.ImageFile], tuple[str, ImageFile.ImageFile]]:
+def generate_overlay_images(file : str, game_size : tuple[float, float], int_game_size: tuple[int, int]) -> tuple[tuple[str, ImageFile.ImageFile], tuple[str, ImageFile.ImageFile]]:
     img = Image.open(file)
     filename = os.path.basename(file)
+    name = filename.rsplit('.', 1)[0]
 
-    size = img.size
+    # size = img.size
 
-    ratio = (math.ceil(size[0] / game_size[0]), math.ceil(size[1] / game_size[1]))
-    canvas_size = (ratio[0] * game_size[0], ratio[1] * game_size[1])
+    # ratio = (int_game_size[0] / game_size[0], int_game_size[1] / game_size[1])
+    # canvas_size = (int(ratio[0] * size[0]), int(ratio[1] * size[1]))
 
-    replacement_image = resize_canvas(img, canvas_size)
-    replacement_file = os.path.join(replacement_out_dir, filename)
+    replacement_image = resize_canvas(img, img.size)
+    replacement_file = os.path.join(replacement_out_dir, name + ".png")
     try:
         replacement_image.save(replacement_file, "PNG")
     except IOError:
         print("cannot create replacement texture for '%s'" % (file))
 
-    thumbnail_file = os.path.join(thumbnail_out_dir, filename)
+    thumbnail_file = os.path.join(thumbnail_out_dir, name + ".png")
     thumbnail_image = replacement_image.copy()
     thumbnail_image.thumbnail(thumbnail_size, Image.Resampling.LANCZOS)
     try:
@@ -47,7 +48,9 @@ def image_to_rgba32_inc_c(img : ImageFile.ImageFile) -> str:
     global tab_size
     build : list[str] = list()
     px_count = 0
+    real_px_count = 0
 
+    img_width = img.size[0]
     for px in img.getdata():
         if px_count % 8 == 0:
             byte_count = px_count * 4
@@ -68,23 +71,25 @@ def image_to_rgba32_inc_c(img : ImageFile.ImageFile) -> str:
             build += '\n'
 
         px_count += 1
+        real_px_count += 1
     build.pop()
 
     return ''.join(build)
 
-def generate_overlays_data(overlays : dict[str, tuple[tuple[float, float], tuple[int, int], str]]) -> str:
+def generate_overlays_data(overlays : dict[str, tuple[tuple[float, float], tuple[float, float], str]]) -> str:
     global tab_size
     build : list[str] = list()
 
     for name, data in overlays.items():
         (game_pos, game_size, file) = data
+        int_game_size = (int(math.ceil(game_size[0])), int(math.ceil(game_size[1])))
 
         (dir, filename) = os.path.split(blend_file)
         file_split = file.split('//')
         file = file_split[len(file_split) - 1]
         file = os.path.join(dir, file)
 
-        (replacement, thumbnail) = generate_overlay_images(file, game_size)
+        (replacement, thumbnail) = generate_overlay_images(file, game_size, int_game_size)
 
         # Generate .rgba32.inc.c file for thumbnail.
         (thumbnail_file, thumbnail_img) = thumbnail
@@ -101,28 +106,33 @@ def generate_overlays_data(overlays : dict[str, tuple[tuple[float, float], tuple
                 0,
             ),
             (
-                int(game_size[0]),
+                int_game_size[0],
                 0,
                 thumbnail_img.width,
                 0,
             ),
             (
-                int(game_size[0]),
-                -int(game_size[1]),
+                int_game_size[0],
+                -int_game_size[1],
                 thumbnail_img.width,
                 thumbnail_img.height,
             ),
             (
                 0,
-                -int(game_size[1]),
+                -int_game_size[1],
                 0,
                 thumbnail_img.height,
             ),
         ]
 
-        build += "#define %s_OVERLAY_X %f" % (name, game_pos[0])
+        build += "#define %s_OVERLAY_X %s" % (name, str(game_pos[0]))
         build += "\n"
-        build += "#define %s_OVERLAY_Y %f" % (name, game_pos[1])
+        build += "#define %s_OVERLAY_Y %s" % (name, str(game_pos[1]))
+        build += "\n\n"
+
+        build += "#define %s_OVERLAY_SCALE_X %s" % (name, str(game_size[0] / int_game_size[0]))
+        build += "\n"
+        build += "#define %s_OVERLAY_SCALE_Y %s" % (name, str(game_size[1] / int_game_size[1]))
         build += "\n\n"
 
         build += "#define %s_OVERLAY_WIDTH %d" % (name, thumbnail_img.width)
@@ -145,7 +155,7 @@ def generate_overlays_data(overlays : dict[str, tuple[tuple[float, float], tuple
 
     return ''.join(build)
 
-def get_overlay_data() -> dict[str, tuple[tuple[float, float], tuple[int, int], str]]:
+def get_overlay_data() -> dict[str, tuple[tuple[float, float], tuple[float, float], str]]:
     data = dict()
 
     # blender ./data/map.blend --background --python data/extract_overlays_data.py
@@ -171,9 +181,9 @@ def get_overlay_data() -> dict[str, tuple[tuple[float, float], tuple[int, int], 
         i += 1
         y = float(input[i])
         i += 1
-        width = int(input[i])
+        width = float(input[i])
         i += 1
-        height = int(input[i])
+        height = float(input[i])
         i += 1
         file = input[i]
         i += 1

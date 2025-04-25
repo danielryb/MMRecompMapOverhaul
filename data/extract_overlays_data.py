@@ -59,6 +59,7 @@ def generate_overlay_data(from_center_x, from_center_y, offset_x, offset_y, scal
                    )
 
         game_size : tuple[float, float]
+        px_to_unit_ratio: tuple[int, int]
         if image.size[0] > image.size[1]:
             res = image.size[1] / image.size[0]
             game_size = (                       \
@@ -81,13 +82,25 @@ def generate_overlay_data(from_center_x, from_center_y, offset_x, offset_y, scal
     build.append("%d\n" % len(generated))
     for name, data in generated.items():
         (game_pos, game_size, file) = data
-        game_size_int = (int(math.ceil(game_size[0])), int(math.ceil(game_size[1])))
-        build.append("%s\n%f %f\n%d %d\n%s\n" % (name, game_pos[0], game_pos[1], game_size_int[0], game_size_int[1], file))
+        build.append("%s\n%f %f\n%f %f\n%s\n" % (name, game_pos[0], game_pos[1], game_size[0], game_size[1], file))
 
     return ''.join(build)
 
 
 if __name__ == "__main__":
+    # Get size_by_px from reference
+    reference = bpy.data.objects.get('PaintedMap')
+
+    ref_image = reference.data
+
+    ref_max_dim_len = max(ref_image.size[0], ref_image.size[1])
+    ref_display_size = reference.empty_display_size
+
+    ref_scene_size = ( \
+                        ref_image.size[0] / ref_max_dim_len * ref_display_size, \
+                        ref_image.size[1] / ref_max_dim_len * ref_display_size, \
+                     )
+
     # map to:
     # A = (51, 61) # top-left corner
     # B = (267, 189) # bottom-right corner
@@ -108,8 +121,8 @@ if __name__ == "__main__":
         )
 
     # map from:
-    a = (-2.5, 1.48148) # top-left corner
-    b = (2.5, -1.48148) # bottom-right corner
+    a = (-ref_scene_size[0] / 2, ref_scene_size[1] / 2) # top-left corner
+    b = (ref_scene_size[0] / 2, -ref_scene_size[1] / 2) # bottom-right corner
 
     offset_x = A[0]
     offset_y = A[1]
@@ -119,3 +132,6 @@ if __name__ == "__main__":
 
     print("#__DATA_START__")
     print(generate_overlay_data(a[0], a[1], offset_x, offset_y, scale_x, scale_y))
+
+    active_object = bpy.context.active_object
+    active_object.name

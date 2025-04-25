@@ -19,3 +19,7 @@ void Math_Vec2f_ScaleAndStore(Vec2f* vec, f32 scale, Vec2f* dest) {
     dest->x = vec->x * scale;
     dest->z = vec->z * scale;
 }
+
+f32 Math_Vec2f_Len(Vec2f* vec) {
+    return sqrtf(SQ(vec->x) + SQ(vec->z));
+}

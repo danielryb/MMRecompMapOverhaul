@@ -176,8 +176,8 @@ def generate_position(name : str, x, y, from_center_x, from_center_y, offset_x, 
     ry = (y - from_center_y) * scale_y + offset_y
 
     constant = pascal_to_constant(name)
-    build += "#define %s_X %f\n" \
-             "#define %s_Y %f\n" % (constant, rx, constant, ry)
+    build += "#define %s_X %s\n" \
+             "#define %s_Y %s\n" % (constant, str(rx), constant, str(ry))
 
     return ''.join(build)
 
@@ -211,8 +211,8 @@ def generate_cursor_positions(from_center_x, from_center_y, offset_x, offset_y, 
         if pascal in generated:
                 (x, y)  = generated[pascal]
 
-                build += "#define %s_X %f\n" \
-                         "#define %s_Y %f" % (name, x, name, y)
+                build += "#define %s_X %s\n" \
+                         "#define %s_Y %s" % (name, str(x), name, str(y))
                 build += '\n\n'
     build.pop()
 
@@ -250,12 +250,17 @@ def generate_warp_positions(from_center_x, from_center_y, offset_x, offset_y, sc
         if pascal in generated:
                 (x, y)  = generated[pascal]
 
-                build += "#define %s%s_X %f\n" \
-                         "#define %s%s_Y %f" % (prefix, name, x, prefix, name, y)
+                build += "#define %s%s_X %s\n" \
+                         "#define %s%s_Y %s" % (prefix, name, str(x), prefix, name, str(y))
                 build += '\n\n'
     build.pop()
 
     return ''.join(build)
+
+class Map:
+    def __init__(self, posY):
+        self.posY = posY
+        self.points = list()
 
 def generate_minimap_to_worldmap_maps(from_center_x, from_center_y, offset_x, offset_y, scale_x, scale_y) -> str:
     tab_size = 4
@@ -265,7 +270,7 @@ def generate_minimap_to_worldmap_maps(from_center_x, from_center_y, offset_x, of
 
     minimaps_collection = bpy.data.collections["Minimaps"]
 
-    generated : dict[str, dict[int, list[tuple[float, float]]]] = dict()
+    generated : dict[str, dict[int, Map]] = dict()
 
     build : list[str] = list()
 
@@ -275,7 +280,8 @@ def generate_minimap_to_worldmap_maps(from_center_x, from_center_y, offset_x, of
         if type != "Minimap":
             raise Exception("Not a minimap!")
 
-        map = list()
+        posY = obj['posY']
+        map = Map(posY)
 
         i = 0
         mesh = obj.data
@@ -288,7 +294,7 @@ def generate_minimap_to_worldmap_maps(from_center_x, from_center_y, offset_x, of
             rx = (x - from_center_x) * scale_x + offset_x
             ry = (y - from_center_y) * scale_y + offset_y
 
-            map.append((rx, ry))
+            map.points.append((rx, ry))
 
             i += 1
 
@@ -308,8 +314,9 @@ def generate_minimap_to_worldmap_maps(from_center_x, from_center_y, offset_x, of
             build += "%s %s%s[%d] = {\n" % (element_type, subarr_prefix, pascal, map_count)
             for num in range(map_count):
                 map = scene[num]
-                for (x, y) in map:
-                    build += "%s%f, %f,\n" % (' ' * tab_size, x, y)
+                build += "%s%s,\n" % (' ' * tab_size, str(map.posY))
+                for (x, y) in map.points:
+                    build += "%s%s, %s,\n" % (' ' * tab_size, str(x), str(y))
                 build += '\n'
             build.pop()
             build += "};"
