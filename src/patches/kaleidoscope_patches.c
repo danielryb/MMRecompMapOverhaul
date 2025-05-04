@@ -1156,3 +1156,156 @@ RECOMP_FORCE_PATCH void KaleidoScope_Draw(PlayState* play) {
 
     CLOSE_DISPS(play->state.gfxCtx);
 }
+
+#include "assets/interface/icon_item_jpn_static/icon_item_jpn_static.h"
+#include "assets/interface/icon_item_vtx_static/icon_item_vtx_static.h"
+
+#define MAP_INFO_SCALE 0.77
+#define MAP_INFO_POSITION_X -63.0
+#define MAP_INFO_POSITION_Y -82.0
+
+#define A_BUTTON_ICON_WIDTH 24
+
+u64 gCUpDownButtonsIconTex[] = {
+#include "c_up_down_buttons_icon.ia8.inc.c"
+};
+
+Gfx gCUpDownButtonsIconDL[] = {
+    gsDPPipeSync(),
+    gsDPSetPrimColor(0, 0, 255, 150, 0, 255),
+    gsDPLoadTextureBlock(gCUpDownButtonsIconTex, G_IM_FMT_IA, G_IM_SIZ_8b, 32, 16, 0, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR |
+                         G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD),
+    gsSP1Quadrangle(0, 2, 3, 1, 0),
+    gsSPEndDisplayList(),
+};
+
+#define PAUSE_TO_ZOOM_TO_INSPECT_TEX_WIDTH 144
+#define PAUSE_TO_ZOOM_TO_INSPECT_TEX_HEIGHT 16
+
+u64 gPauseToZoomToInspectENGTex[] = {
+#include "pause_to_zoom_to_inspect_eng.ia4.inc.c"
+};
+
+#define C_UP_DOWN_BUTTONS_ICON_POS_X A_BUTTON_ICON_WIDTH + 50
+#define C_UP_DOWN_BUTTONS_ICON_POS_Y 0
+#define C_UP_DOWN_BUTTONS_ICON_WIDTH 32
+#define C_UP_DOWN_BUTTONS_ICON_HEIGHT 16
+
+Vtx gAButtonIconVtx[] = {
+    VTX(C_UP_DOWN_BUTTONS_ICON_POS_X, C_UP_DOWN_BUTTONS_ICON_POS_Y - C_UP_DOWN_BUTTONS_ICON_HEIGHT, 0,
+        0 << 5, C_UP_DOWN_BUTTONS_ICON_HEIGHT << 5, 0, 0, 0, 0xFF),
+
+    VTX(C_UP_DOWN_BUTTONS_ICON_POS_X, C_UP_DOWN_BUTTONS_ICON_POS_Y, 0,
+        0 << 5,  0 << 5, 0, 0, 0, 0xFF),
+
+    VTX(C_UP_DOWN_BUTTONS_ICON_POS_X + C_UP_DOWN_BUTTONS_ICON_WIDTH, C_UP_DOWN_BUTTONS_ICON_POS_Y - C_UP_DOWN_BUTTONS_ICON_HEIGHT, 0,
+        C_UP_DOWN_BUTTONS_ICON_WIDTH << 5, C_UP_DOWN_BUTTONS_ICON_HEIGHT << 5, 0, 0, 0, 0xFF),
+
+    VTX(C_UP_DOWN_BUTTONS_ICON_POS_X + C_UP_DOWN_BUTTONS_ICON_WIDTH, C_UP_DOWN_BUTTONS_ICON_POS_Y, 0,
+        C_UP_DOWN_BUTTONS_ICON_WIDTH << 5,  0 << 5, 0, 0, 0, 0xFF),
+};
+
+PlayState* play_tmp;
+
+// Draw info for map.
+RECOMP_HOOK("KaleidoScope_DrawInfoPanel") void on_KaleidoScope_DrawInfoPanel(PlayState* play) {
+    play_tmp = play;
+}
+
+RECOMP_HOOK_RETURN("KaleidoScope_DrawInfoPanel") void after_KaleidoScope_DrawInfoPanel(void) {
+    PlayState* play = play_tmp;
+    PauseContext* pauseCtx = &play->pauseCtx;
+
+    OPEN_DISPS(play->state.gfxCtx);
+
+    gEXMatrixGroupDecomposedNormal(POLY_OPA_DISP++, MAP_INFO_ID, G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
+
+    Matrix_Push();
+    Matrix_Translate(MAP_INFO_POSITION_X, MAP_INFO_POSITION_Y + pauseCtx->infoPanelOffsetY, -144.0f, MTXMODE_NEW);
+    Matrix_Scale(MAP_INFO_SCALE, MAP_INFO_SCALE, 1.0f, MTXMODE_APPLY);
+    MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, play->state.gfxCtx);
+
+    if ((pauseCtx->namedItem == pauseCtx->cursorItem[pauseCtx->pageIndex]) &&
+        (pauseCtx->pageIndex == PAUSE_MAP) && (pauseCtx->cursorSpecialPos == 0) &&
+        (pauseCtx->nameDisplayTimer >= 40)) {
+
+        pauseCtx->infoPanelVtx[16].v.ob[1] = pauseCtx->infoPanelVtx[17].v.ob[1] =
+        pauseCtx->infoPanelVtx[20].v.ob[1] = pauseCtx->infoPanelVtx[21].v.ob[1] = 0;
+
+        pauseCtx->infoPanelVtx[18].v.ob[1] = pauseCtx->infoPanelVtx[19].v.ob[1] =
+        pauseCtx->infoPanelVtx[22].v.ob[1] = pauseCtx->infoPanelVtx[23].v.ob[1] =
+            pauseCtx->infoPanelVtx[20].v.ob[1] - 16;
+
+        pauseCtx->infoPanelVtx[22].v.tc[1] = pauseCtx->infoPanelVtx[23].v.tc[1] = 16 * (1 << 5);
+
+        gSPVertex(POLY_OPA_DISP++, &pauseCtx->infoPanelVtx[16], 8, 0);
+
+
+        pauseCtx->infoPanelVtx[16].v.ob[0] = pauseCtx->infoPanelVtx[18].v.ob[0] = 0;
+
+        pauseCtx->infoPanelVtx[17].v.ob[0] = pauseCtx->infoPanelVtx[19].v.ob[0] =
+            pauseCtx->infoPanelVtx[16].v.ob[0] + A_BUTTON_ICON_WIDTH;
+
+        pauseCtx->infoPanelVtx[20].v.ob[0] = pauseCtx->infoPanelVtx[22].v.ob[0] =
+            pauseCtx->infoPanelVtx[16].v.ob[0] + (A_BUTTON_ICON_WIDTH - 4);
+
+        pauseCtx->infoPanelVtx[21].v.ob[0] = pauseCtx->infoPanelVtx[23].v.ob[0] =
+            pauseCtx->infoPanelVtx[20].v.ob[0] + PAUSE_TO_ZOOM_TO_INSPECT_TEX_WIDTH;
+
+        pauseCtx->infoPanelVtx[17].v.tc[0] = pauseCtx->infoPanelVtx[19].v.tc[0] = A_BUTTON_ICON_WIDTH * (1 << 5);
+
+        pauseCtx->infoPanelVtx[21].v.tc[0] = pauseCtx->infoPanelVtx[23].v.tc[0] = PAUSE_TO_ZOOM_TO_INSPECT_TEX_WIDTH * (1 << 5);
+
+        gSPDisplayList(POLY_OPA_DISP++, gAButtonIconDL);
+
+        gDPPipeSync(POLY_OPA_DISP++);
+        gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 255, 255, 255, 255);
+
+        gDPLoadTextureTile_4b(POLY_OPA_DISP++, gPauseToZoomToInspectENGTex, G_IM_FMT_IA,
+            PAUSE_TO_ZOOM_TO_INSPECT_TEX_WIDTH, PAUSE_TO_ZOOM_TO_INSPECT_TEX_HEIGHT, 0, 0,
+            PAUSE_TO_ZOOM_TO_INSPECT_TEX_WIDTH - 1, PAUSE_TO_ZOOM_TO_INSPECT_TEX_HEIGHT - 1, 0,
+            G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+        gSP1Quadrangle(POLY_OPA_DISP++, 4, 6, 7, 5, 0);
+        // POLY_OPA_DISP = Gfx_DrawTexQuad4b(POLY_OPA_DISP, gPauseToZoomToInspectENGTex, G_IM_FMT_IA, PAUSE_TO_ZOOM_TO_INSPECT_TEX_WIDTH, 16, 4);
+
+        gSPVertex(POLY_OPA_DISP++, gAButtonIconVtx, 4, 0);
+        gSPDisplayList(POLY_OPA_DISP++, gCUpDownButtonsIconDL);
+    }
+    Matrix_Pop();
+
+    gEXPopMatrixGroup(POLY_OPA_DISP++, G_MTX_MODELVIEW);
+
+    CLOSE_DISPS(play->state.gfxCtx);
+}
+
+PauseContext* pauseCtx_tmp;
+bool restoreNameDisplayTimer = false;
+u16 prevNameDisplayTimer;
+
+// Enable info blinking for map.
+RECOMP_HOOK("KaleidoScope_UpdateNamePanel") void on_KaleidoScope_UpdateNamePanel(PlayState* play) {
+    PauseContext* pauseCtx = &play->pauseCtx;
+    pauseCtx_tmp = pauseCtx;
+    u16 namedItem;
+
+    if ((pauseCtx->namedItem == pauseCtx->cursorItem[pauseCtx->pageIndex]) &&
+        (pauseCtx->pageIndex == PAUSE_MAP) && (pauseCtx->cursorSpecialPos == 0)) {
+        pauseCtx->nameDisplayTimer++;
+        if (pauseCtx->nameDisplayTimer > 70) {
+            pauseCtx->nameDisplayTimer = 0;
+        }
+
+        prevNameDisplayTimer = pauseCtx->nameDisplayTimer;
+        restoreNameDisplayTimer = true;
+    }
+}
+
+RECOMP_HOOK_RETURN("KaleidoScope_UpdateNamePanel") void after_KaleidoScope_UpdateNamePanel(void) {
+    PauseContext* pauseCtx = pauseCtx_tmp;
+    u16 namedItem;
+
+    if (restoreNameDisplayTimer) {
+        pauseCtx->nameDisplayTimer = prevNameDisplayTimer;
+        restoreNameDisplayTimer = false;
+    }
+}
