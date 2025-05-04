@@ -276,12 +276,16 @@ extern MapDisp sMapDisp;
 
 void map_overhaul_reload_minimap_data(PlayState* play /*TMP*/, s8 room) {
     s32 scene = ((void)0, gSaveContext.save.entrance) >> 9;
+#ifdef DEBUG
     recomp_printf("scene: %d, room: %d\n", scene, room);
+#endif
 
     minimap_map_t* scene_maps = MiniToWorld[scene];
     if (scene_maps != NULL) {
         minimapToWorldMap = &scene_maps[room];
+#ifdef DEBUG
         recomp_printf("%f\n", minimapToWorldMap[0]);
+#endif
     } else {
         minimapToWorldMap = NULL;
     }
@@ -307,7 +311,9 @@ void map_overhaul_reload_minimap_data(PlayState* play /*TMP*/, s8 room) {
     }
 
     s16 sceneId = Play_GetOriginalSceneId(play->sceneId);
+#ifdef DEBUG
     recomp_printf("originalSceneId %d\n", sceneId);
+#endif
 }
 
 bool map_overhaul_minimap_unit_to_world_map_position(Vec2f* minimapPos, Vec2f* dest) {
@@ -475,7 +481,7 @@ bool map_overhaul_calculate_world_map_position(PlayState* play, Vec3f* pos, Vec2
 
     f32 offsetY = get_y_offset(minimapToWorldMap->points, pos, &unitPos, scaleFrac);
 
-    Vec2f offsetVec = { 0, -offsetY }; //-(pos->y - CFG_MAP_Y_ZERO) * CFG_MAP_Y_SCALE};
+    Vec2f offsetVec = { 0, -offsetY };
     Math_Vec2f_Sum(dest, &offsetVec, dest);
 
     return true;

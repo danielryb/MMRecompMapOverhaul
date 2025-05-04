@@ -6,6 +6,7 @@
 #include "assets/archives/icon_item_24_static/icon_item_24_static_yar.h"
 
 #define MAP_TRANSFORM_ID 0x19U
+#define MAP_INFO_ID 0x100019U
 
 #define MAP_SIZE_X 216
 #define MAP_SIZE_Y 128
@@ -50,9 +51,9 @@ Vtx gMapWarpVtx[] = {
     #define gEXMatrixGroupDecomposedSkipAll(cmd, id, push, proj, edit) \
     gEXMatrixGroupDecomposed(cmd, id, push, proj, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_INTERPOLATE, G_EX_ORDER_LINEAR, edit)
 
-#define DRAW_OVERLAY(pkt, name)                                                                                                         \
+#define DRAW_OVERLAY(pkt, name, id)                                                                                                     \
     do {                                                                                                                                \
-        gEXMatrixGroupDecomposedNormal(POLY_OPA_DISP++, MAP_TRANSFORM_ID, G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);                  \
+        gEXMatrixGroupDecomposedNormal(POLY_OPA_DISP++, MAP_TRANSFORM_ID + id, G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);             \
         Matrix_Push();                                                                                                                  \
         Matrix_Translate(                                                                                                               \
             name ## _OVERLAY_X - SCREEN_CENTER_PX_X,                                                                                    \
@@ -102,7 +103,7 @@ Vtx gMapWarpVtx[] = {
 #define CLEARED_STONE_TOWER_TEMPLE                  (CHECK_WEEKEVENTREG(WEEKEVENTREG_CLEARED_STONE_TOWER_TEMPLE))
 #define WOODFALL_TEMPLE_EMERGED                     (CHECK_WEEKEVENTREG(WEEKEVENTREG_20_01))
 #define MILK_ROAD_BOULDER_DESTROYED                 ((CHECK_SCENE_SWITCH0(SCENE_ID(ENTR_SCENE_MILK_ROAD), 0x00000002)) || CURRENT_DAY >= 3)
-#define PATH_TO_GORON_VILLAGE_BOULDER_DESTROYED     (CHECK_SCENE_SWITCH0(SCENE_ID(ENTR_SCENE_PATH_TO_GORON_VILLAGE_WINTER), 0x00100000))
+#define PATH_TO_GORON_VILLAGE_BOULDER_DESTROYED     (CHECK_WEEKEVENTREG(WEEKEVENTREG_19_02)) // (CHECK_SCENE_SWITCH0(SCENE_ID(ENTR_SCENE_PATH_TO_GORON_VILLAGE_WINTER), 0x00100000))
 #define PATH_TO_GORON_VILLAGE_ICE_CRYSTAL_MELTED    (CHECK_SCENE_SWITCH0(SCENE_ID(ENTR_SCENE_PATH_TO_GORON_VILLAGE_WINTER), 0x00000001))
 #define MOUNTAIN_SMITHY_HEARTH_MELTED               (CHECK_SCENE_SWITCH0(SCENE_ID(ENTR_SCENE_MOUNTAIN_SMITHY), 0x00000002))
 #define TERMINA_FIELD_ICICLE_DESTROYED              (CHECK_SCENE_SWITCH0(SCENE_ID(ENTR_SCENE_TERMINA_FIELD), 0x00000002))
@@ -533,6 +534,7 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
     // recomp_printf("pauseCtx->mainState: %d, X: %d, Y: %d, Z: %d\n", pauseCtx->mainState, print_vtx->v.ob[0], print_vtx->v.ob[1], print_vtx->v.ob[2]);
     // recomp_printf("zoom_scale: %f, zoom_offset_x: %f, zoom_offset_y: %f\n", zoom_scale, zoom_offset.x, zoom_offset.z);
 
+    u8 _id = 0;
     // @mod
     gDPPipeSync(POLY_OPA_DISP++);
 
@@ -548,9 +550,7 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
 
     gSPClearGeometryMode(POLY_OPA_DISP++, G_CULL_BACK);
 
-    DRAW_OVERLAY(POLY_OPA_DISP++, WorldMap);
-
-    gDPSetTextureFilter(POLY_OPA_DISP++, G_TF_POINT);
+    DRAW_OVERLAY(POLY_OPA_DISP++, WorldMap, _id++);
 
     // @mod Draw map overlays.
     s16 sceneId = Play_GetOriginalSceneId(play->sceneId);
@@ -602,11 +602,11 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
             drawSnowheadCleared = CLEARED_SNOWHEAD_TEMPLE;
             if (drawSnowheadCleared) {
                 drawGoronRacetrackBoulderWinter = false;
-                drawGoronRacetrackBoulderSpring = PATH_TO_GORON_VILLAGE_BOULDER_DESTROYED;
+                drawGoronRacetrackBoulderSpring = !PATH_TO_GORON_VILLAGE_BOULDER_DESTROYED;
                 drawMountainSmithySmoke = false;
                 drawMountainHotspringIceCrystal = false;
             } else {
-                drawGoronRacetrackBoulderWinter = PATH_TO_GORON_VILLAGE_BOULDER_DESTROYED;
+                drawGoronRacetrackBoulderWinter = !PATH_TO_GORON_VILLAGE_BOULDER_DESTROYED;
                 drawGoronRacetrackBoulderSpring = false;
                 drawMountainSmithySmoke = MOUNTAIN_SMITHY_HEARTH_MELTED;
                 drawMountainHotspringIceCrystal = !PATH_TO_GORON_VILLAGE_ICE_CRYSTAL_MELTED;
@@ -729,63 +729,63 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
     }
 
     if (drawClockTownViewingTowerThirdDay) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, Scaffolding);
+        DRAW_OVERLAY(POLY_OPA_DISP++, Scaffolding, _id++);
     }
 
     if (drawTerminaFieldIcicleDestroyed) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, IceTerminaGate);
+        DRAW_OVERLAY(POLY_OPA_DISP++, IceTerminaGate, _id++);
     }
 
     if (drawRomaniRanchBoulderDestroyed) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, RanchBoulder);
+        DRAW_OVERLAY(POLY_OPA_DISP++, RanchBoulder, _id++);
     }
 
     if (drawSwampCleared) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, SwampMain);
+        DRAW_OVERLAY(POLY_OPA_DISP++, SwampMain, _id++);
     }
 
     if (drawWoodfallEmergedCursed) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, WFTempleCursed);
+        DRAW_OVERLAY(POLY_OPA_DISP++, WFTempleCursed, _id++);
     }
 
     if (drawSnowheadCleared) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, SnowheadMain);
+        DRAW_OVERLAY(POLY_OPA_DISP++, SnowheadMain, _id++);
     }
 
     if (drawGoronRacetrackBoulderWinter) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, TrackBldrIcy);
+        DRAW_OVERLAY(POLY_OPA_DISP++, TrackBldrIcy, _id++);
     }
 
     if (drawGoronRacetrackBoulderSpring) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, TrackBldrThawed);
+        DRAW_OVERLAY(POLY_OPA_DISP++, TrackBldrThawed, _id++);
     }
 
     if (drawMountainSmithySmoke) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, ChimneySmith);
+        DRAW_OVERLAY(POLY_OPA_DISP++, ChimneySmith, _id++);
     }
 
     if (drawMountainHotspringIceCrystal) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, PondCrystal);
+        DRAW_OVERLAY(POLY_OPA_DISP++, PondCrystal, _id++);
     }
 
     if (drawGreatBayCleared) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, GBayMain);
+        DRAW_OVERLAY(POLY_OPA_DISP++, GBayMain, _id++);
     }
 
     if (drawMikauGrave) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, MikauGrave);
+        DRAW_OVERLAY(POLY_OPA_DISP++, MikauGrave, _id++);
     }
 
     if (drawSeahorses) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, Seahorses);
+        DRAW_OVERLAY(POLY_OPA_DISP++, Seahorses, _id++);
     }
 
     if (drawIkanaCleared) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, IkanaMain);
+        DRAW_OVERLAY(POLY_OPA_DISP++, IkanaMain, _id++);
     }
 
     if (drawIkanaGraveyardFlameAndKeetaGone) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, KeetaArea);
+        DRAW_OVERLAY(POLY_OPA_DISP++, KeetaArea, _id++);
     }
 
     if (drawIkanaGraveyardBridge) {
@@ -793,23 +793,23 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
     }
 
     if (drawIkanaCanyonRiver) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, IkanaRiver);
+        DRAW_OVERLAY(POLY_OPA_DISP++, IkanaRiver, _id++);
     }
 
     if (drawIkanaCastleRoofHole) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, CastleRoof);
+        DRAW_OVERLAY(POLY_OPA_DISP++, CastleRoof, _id++);
     }
 
     if (drawRoadToIkanaHookshotTree) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, HookshotTree);
+        DRAW_OVERLAY(POLY_OPA_DISP++, HookshotTree, _id++);
     }
 
     if (drawSakonHideoutOpen) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, SakonDoor);
+        DRAW_OVERLAY(POLY_OPA_DISP++, SakonDoor, _id++);
     }
 
     if (drawShiro) {
-        DRAW_OVERLAY(POLY_OPA_DISP++, Shiro);
+        DRAW_OVERLAY(POLY_OPA_DISP++, Shiro, _id++);
     }
 
     MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, play->state.gfxCtx);
@@ -854,7 +854,6 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
     // @mod
     gSPTexture(POLY_OPA_DISP++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
     gSPClearGeometryMode(POLY_OPA_DISP++, G_CULL_BACK);
-    gDPSetTextureFilter(POLY_OPA_DISP++, G_TF_POINT);
 
     if (!IS_PAUSE_STATE_OWL_WARP(pauseCtx)) {
         // Browsing the world map regions on the pause menu
@@ -1023,7 +1022,7 @@ RECOMP_PATCH void KaleidoScope_DrawWorldMap(PlayState* play) {
 
             KaleidoScope_SetView(pauseCtx, pauseCtx->eye.x, pauseCtx->eye.y, pauseCtx->eye.z);
             Gfx_SetupDL39_Opa(play->state.gfxCtx);
-            gDPSetOtherMode(POLY_OPA_DISP++, G_AD_PATTERN | G_CD_MAGICSQ | G_CK_NONE | G_TC_FILT | G_TF_POINT | G_TT_NONE | G_TL_TILE |
+            gDPSetOtherMode(POLY_OPA_DISP++, G_AD_PATTERN | G_CD_MAGICSQ | G_CK_NONE | G_TC_FILT | G_TF_BILERP | G_TT_NONE | G_TL_TILE |
                                 G_TD_CLAMP | G_TP_PERSP | G_CYC_1CYCLE | G_PM_NPRIMITIVE,
                             G_AC_THRESHOLD | G_ZS_PIXEL | G_RM_XLU_SURF | G_RM_XLU_SURF2);
 

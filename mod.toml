@@ -63,6 +63,14 @@ additional_files = [ ]
 id = "map_overlay_mode"
 name = "Map Overlay Mode"
 description = """Determines the mode for dynamic overlays.
+
+Progressive mode permanently updates after completing an area.
+
+Realtime mode flexibly changes to match the current game state.
+
+Combined mode updates as in realtime but the changes become permanent after major accomplishments.
+
+Static mode will not update.
 """
 type = "Enum"
 options = [
