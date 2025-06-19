@@ -1,7 +1,5 @@
 #include "map_overhaul.h"
 
-extern s16 sGreatFairySpawnRegions[];
-
 #ifdef DEBUG
 #define SCENE_COUNT 120
 
@@ -31,6 +29,11 @@ u8 weekEventData[WEEKREG_SIZE];
 #define _CLEAR_WEEKEVENTDATA(flag) (_WEEKEVENTDATA((flag) >> 8) = _GET_WEEKEVENTDATA((flag) >> 8) & (u8)~((flag) & 0xFF))
 #endif
 
+s16 sGreatFairySpawnRegions[] = {
+    REGION_CLOCK_TOWN, REGION_WOODFALL, REGION_SNOWHEAD, REGION_GREAT_BAY, REGION_IKANA_CANYON,
+    REGION_CLOCK_TOWN, REGION_WOODFALL, REGION_SNOWHEAD, REGION_GREAT_BAY, REGION_IKANA_CANYON,
+};
+
 // @mod Calculate player's world map position
 RECOMP_HOOK("Play_DrawMain") void onPlay_DrawMain(PlayState* play) {
     if (R_PAUSE_BG_PRERENDER_STATE == PAUSE_BG_PRERENDER_SETUP) {
@@ -47,6 +50,18 @@ RECOMP_HOOK("Play_DrawMain") void onPlay_DrawMain(PlayState* play) {
                 s16 j = 0;
                 s16 n = 0;
                 s16 sceneId = play->sceneId;
+
+                // Map grottos/shrines to sceneId's to be used in different regions
+                if (sceneId == SCENE_KAKUSIANA) {
+                    if (play->roomCtx.curRoom.num == 5) {
+                        sceneId = SCENE_11GORONNOSATO;
+                    } else if ((play->roomCtx.curRoom.num == 6) || (play->roomCtx.curRoom.num == 8) ||
+                            (play->roomCtx.curRoom.num == 12)) {
+                        sceneId = SCENE_22DEKUCITY;
+                    } else {
+                        sceneId = Entrance_GetSceneIdAbsolute(((void)0, gSaveContext.respawn[RESPAWN_MODE_UNK_3].entrance));
+                    }
+                }
 
                 // Find the region that player is currently in
                 // Loop over region (n) and regionIndex (j)
